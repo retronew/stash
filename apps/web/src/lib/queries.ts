@@ -2,6 +2,7 @@
 // pages read through these, and invalidate by the same keys after a write.
 
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
+import type { AuditPage } from "#lib/audit";
 import type {
   AnalysisSettings,
   AnalysisStats,
@@ -202,7 +203,7 @@ export const apiTokenQuery = queryOptions({
   queryFn: () => api<{ masked: string | null }>("/api/settings/api-token"),
 });
 
-export type RetentionTarget = "events" | "tasks" | "trash";
+export type RetentionTarget = "events" | "tasks" | "trash" | "audit";
 
 export interface RetentionStats {
   count: number;
@@ -293,4 +294,40 @@ export const trashQuery = infiniteQueryOptions({
   queryFn: ({ pageParam }) => api<MessagePage>(listUrl("/api/messages", { trash: true, before: pageParam, limit: 30 })),
   initialPageParam: null as number | null,
   getNextPageParam: (last) => last.nextCursor,
+});
+
+export interface AuditFilters {
+  q: string;
+  category: string;
+  action: string;
+  actor: string;
+  result: string;
+}
+
+const unlessAll = (v: string) => (v === "all" ? undefined : v);
+
+/** The audit trail, newest first. */
+export const auditQuery = (filters: AuditFilters) =>
+  infiniteQueryOptions({
+    queryKey: ["audit", filters],
+    queryFn: ({ pageParam }) =>
+      api<AuditPage>(
+        listUrl("/api/audit", {
+          q: filters.q || undefined,
+          category: unlessAll(filters.category),
+          action: unlessAll(filters.action),
+          actor: unlessAll(filters.actor),
+          result: unlessAll(filters.result),
+          before: pageParam,
+          limit: 50,
+        }),
+      ),
+    initialPageParam: null as number | null,
+    getNextPageParam: (last) => last.nextCursor,
+  });
+
+/** Actions and actors in the audit trail, with counts, for the filters. */
+export const auditFacetsQuery = queryOptions({
+  queryKey: ["audit", "facets"],
+  queryFn: () => api<{ actions: { value: string; count: number }[]; actors: { value: string; count: number }[] }>("/api/audit/facets"),
 });

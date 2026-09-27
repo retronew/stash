@@ -8,7 +8,7 @@ import { purgeMessages, trashedIds } from "#messages";
 // message (and its file in R2), so it goes when the message is purged.
 // "trash" purges messages that sat in the recycle bin too long, files included.
 
-export const RETENTION_TARGETS = ["events", "tasks", "trash"] as const;
+export const RETENTION_TARGETS = ["events", "tasks", "trash", "audit"] as const;
 export type RetentionTarget = (typeof RETENTION_TARGETS)[number];
 
 export const MAX_RETENTION_DAYS = 3650;
@@ -41,6 +41,14 @@ const SPECS: Record<RetentionTarget, TargetSpec> = {
     where: "status = 'failed'",
     timeColumn: "updated_at",
     textBytes: "length(CAST(source_url AS BLOB)) + length(CAST(filename AS BLOB)) + length(CAST(last_error AS BLOB)) + length(kind) + length(content_type)",
+  },
+  audit: {
+    settingKey: "retention_audit_days",
+    defaultDays: 180,
+    table: "audit_log",
+    where: "1 = 1",
+    timeColumn: "created_at",
+    textBytes: "length(CAST(actor AS BLOB)) + length(CAST(action AS BLOB)) + length(CAST(target AS BLOB)) + length(CAST(summary AS BLOB)) + length(CAST(ip AS BLOB)) + length(CAST(user_agent AS BLOB)) + length(CAST(detail AS BLOB))",
   },
   trash: {
     settingKey: "retention_trash_days",

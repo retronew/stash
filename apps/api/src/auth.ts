@@ -1,5 +1,11 @@
 import { betterAuth } from "better-auth";
 import type { Env } from "#types";
+import { safeAudit, requestMeta } from "#audit/index";
+import type { MessageRef } from "@stash/shared/i18n";
+
+const PROVIDER_NAMES: Record<string, string> = { google: "Google", github: "GitHub" };
+const providerName = (id?: string): MessageRef | string =>
+  id ? (PROVIDER_NAMES[id] ?? id) : { key: "audit_sum_unknown_provider" };
 import { getSetting, setSetting } from "#settings";
 
 // Stash is single-user: sign-in goes through Google / GitHub via Better Auth,
@@ -108,8 +114,16 @@ export function createAuth(env: Env) {
     },
     user: {
       // Runs before creating a user, linking an account or signing in.
-      validateUserInfo: async ({ user }) => {
+      validateUserInfo: async ({ user, source }, ctx) => {
         if (!(await isAllowedEmail(env, user.email))) {
+          await safeAudit(env.DB, {
+            actor: user.email ?? "unknown",
+            action: "auth.sign_in_denied",
+            summary: { key: "audit_sum_sign_in_denied", params: { provider: providerName(source.oauth?.providerId) } },
+            status: 403,
+            ...(ctx?.request ? requestMeta(ctx.request) : {}),
+            detail: { provider: source.oauth?.providerId, action: source.action },
+          });
           return {
             error: "email_not_allowed",
             errorDescription: "This account is not allowed to sign in",
@@ -120,6 +134,27 @@ export function createAuth(env: Env) {
     account: {
       // Google and GitHub with the same email sign in as the same user.
       accountLinking: { enabled: true, trustedProviders: ["google", "github"] },
+    },
+    databaseHooks: {
+      session: {
+        create: {
+          after: async (session, ctx) => {
+            const user = await env.DB.prepare('SELECT email FROM "user" WHERE id = ?')
+              .bind(session.userId)
+              .first<{ email: string }>();
+            const provider = (ctx?.params as { id?: string } | undefined)?.id;
+            await safeAudit(env.DB, {
+              actor: user?.email ?? session.userId,
+              action: "auth.sign_in",
+              summary: { key: "audit_sum_sign_in", params: { provider: providerName(provider) } },
+              status: 200,
+              ip: session.ipAddress ?? "",
+              userAgent: session.userAgent ?? "",
+              detail: { provider },
+            });
+          },
+        },
+      },
     },
     session: {
       expiresIn: 60 * 60 * 24 * 30,

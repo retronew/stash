@@ -20,6 +20,8 @@
 - **Bulk actions**: in select mode (on the Messages page and in the trash), set a category, add or remove tags, analyze again, retry failed files, delete, or restore / delete forever
 - **Thumbnails**: right after a download, the Images binding makes a 480px WebP for lists and a 1280px one that AI analysis uses instead of the original (so large screenshots get analyzed too); both are kept in R2 and made once (free plan: 5,000 transformations a month). Older images are filled in a few at a time by the cron sweep; the original opens on click
 - **Virtual scrolling**: the message list and the trash only mount the cards near the viewport, as in PickIt
+- **Audit log**: as in PickIt, every API write, export preparation, MCP tool call and sign-in (allowed or denied) is recorded with who, when, from where and the request body (secrets redacted); filter by category, action, actor, result and keyword, with live refresh. Kept 180 days by default (Settings → Data & export)
+- **Filters in the URL**: the filters on the Messages, Tasks, Events and Audit pages are kept in the address, so they survive a reload and can be bookmarked
 - **Trash**: deleting a message moves it to the trash with its files (undo right away, or restore later from the Trash page); deleting it forever there, emptying the trash, or the trash retention setting (30 days by default) removes the files from R2 too
 - **Retention**: Settings → Data & export sets how long the event log, failed download records and the trash are kept (presets or a custom number of days, or forever), with their record count and size
 - **API token**: `Authorization: Bearer <token>` lets scripts read the API, e.g. to back up messages and files

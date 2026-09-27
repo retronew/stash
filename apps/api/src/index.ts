@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import type { Env } from "#types";
 import { DEV_USER, enabledProviders, getAuth, isDevBypass } from "#auth";
 import { requireAuth } from "#auth-middleware";
+import { auditMiddleware } from "#audit/index";
+import { auditRoutes } from "#routes/audit";
 import { scheduled } from "#scheduled";
 import { queue } from "#media/consumer";
 import type { MediaJob } from "#media/jobs";
@@ -16,6 +18,17 @@ import { exportRoutes } from "#routes/export";
 import { analysisRoutes } from "#routes/analysis";
 
 const app = new Hono<{ Bindings: Env }>();
+
+// First, so it also sees sign-out and requests the auth middleware rejects.
+app.use(
+  "/api/*",
+  auditMiddleware(async (c) => {
+    const session = await getAuth(c.env)
+      .api.getSession({ headers: c.req.raw.headers })
+      .catch(() => null);
+    return session?.user.email ?? null;
+  }),
+);
 
 // Better Auth owns /api/auth/* (OAuth redirects, callbacks, session, sign-out).
 app.on(["GET", "POST"], "/api/auth/*", (c) => getAuth(c.env).handler(c.req.raw));
@@ -42,6 +55,7 @@ app.route("/api/mcp", mcpRoutes);
 app.route("/api/export", exportRoutes);
 app.route("/api/analysis", analysisRoutes);
 app.route("/api/settings", settingsRoutes);
+app.route("/api/audit", auditRoutes);
 
 export default {
   fetch: app.fetch,

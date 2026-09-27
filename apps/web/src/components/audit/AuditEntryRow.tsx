@@ -1,0 +1,92 @@
+import { useState, type ReactNode } from "react";
+import { ChevronRightIcon } from "lucide-react";
+import { Badge } from "#components/ui/badge";
+import { cn } from "#lib/utils";
+import { actionLabel, actorLabel, auditSummary, isFailure, type AuditEntry } from "#lib/audit";
+import { intlLocale, m } from "#lib/i18n";
+
+const timeFormat = new Intl.DateTimeFormat(intlLocale(), {
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+});
+
+function StatusBadge({ entry }: { entry: AuditEntry }) {
+  if (entry.status == null) return null;
+  return isFailure(entry) ? (
+    <Badge variant="error">{m.audit_failed_status({ status: String(entry.status) })}</Badge>
+  ) : (
+    <Badge variant="success">{m.audit_ok()}</Badge>
+  );
+}
+
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-[4.5rem_1fr] gap-2">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 break-all">{children}</dd>
+    </div>
+  );
+}
+
+/** One audit entry; expands to show the request, client and body (PickIt's row). */
+export function AuditEntryRow({ entry }: { entry: AuditEntry }) {
+  const [open, setOpen] = useState(false);
+  const { method, path, durationMs, message: _message, ...rest } = entry.detail as {
+    method?: string;
+    path?: string;
+    durationMs?: number;
+  } & Record<string, unknown>;
+
+  return (
+    <li className="border-b last:border-b-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-1 px-3 py-2.5 text-left text-sm hover:bg-accent/50 sm:grid-cols-[auto_8.5rem_7rem_1fr_auto]"
+      >
+        <ChevronRightIcon className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-90")} />
+        <time className="text-muted-foreground tabular-nums text-xs" dateTime={new Date(entry.createdAt).toISOString()}>
+          {timeFormat.format(entry.createdAt)}
+        </time>
+        <span className="hidden truncate font-medium sm:block">{actionLabel(entry.action)}</span>
+        <span className="col-span-2 min-w-0 sm:col-span-1">
+          <span className="block truncate">{auditSummary(entry) || actionLabel(entry.action)}</span>
+          <span className="block truncate text-muted-foreground text-xs">{actorLabel(entry.actor)}</span>
+        </span>
+        <span className="col-start-3 row-start-1 sm:col-start-auto sm:row-start-auto">
+          <StatusBadge entry={entry} />
+        </span>
+      </button>
+      {open && (
+        <dl className="space-y-1.5 bg-muted/40 px-3 py-3 pl-10 text-xs">
+          <DetailRow label={m.audit_detail_action()}>
+            <code>{entry.action}</code>
+          </DetailRow>
+          {entry.target && <DetailRow label={m.audit_detail_target()}>{entry.target}</DetailRow>}
+          {path && (
+            <DetailRow label={m.audit_detail_request()}>
+              <code>
+                {method} {path}
+              </code>
+              {durationMs != null && <span className="text-muted-foreground"> · {durationMs} ms</span>}
+            </DetailRow>
+          )}
+          {entry.ip && <DetailRow label="IP">{entry.ip}</DetailRow>}
+          {entry.userAgent && <DetailRow label={m.audit_detail_client()}>{entry.userAgent}</DetailRow>}
+          {Object.keys(rest).length > 0 && (
+            <DetailRow label={m.audit_detail_more()}>
+              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-background p-2 font-mono">
+                {JSON.stringify(rest, null, 2)}
+              </pre>
+            </DetailRow>
+          )}
+        </dl>
+      )}
+    </li>
+  );
+}

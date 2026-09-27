@@ -46,3 +46,34 @@ export function matchLocale(tag: string | null | undefined): Locale {
   return isLocale(lang) ? lang : baseLocale;
 }
 
+/**
+ * A message to render later, possibly in another language: its key and
+ * parameters, where a parameter can itself be a message. Used for audit
+ * summaries, which are stored once and shown in whatever language is active.
+ */
+export interface MessageRef {
+  key: string;
+  params?: Record<string, string | number | MessageRef>;
+}
+
+type MessageFn = (inputs: Record<string, unknown>, options?: { locale?: Locale }) => string;
+const catalog = m as unknown as Record<string, MessageFn | undefined>;
+
+export function hasMessage(key: string): boolean {
+  return typeof catalog[key] === "function";
+}
+
+/** Renders a MessageRef; an unknown key renders as the key itself. */
+export function renderMessage(ref: MessageRef, locale?: Locale): string {
+  const fn = catalog[ref.key];
+  if (!fn) return ref.key;
+  const params: Record<string, string | number> = {};
+  for (const [name, value] of Object.entries(ref.params ?? {})) {
+    params[name] = typeof value === "object" ? renderMessage(value, locale) : value;
+  }
+  return fn(params, { locale });
+}
+
+export function isMessageRef(value: unknown): value is MessageRef {
+  return !!value && typeof value === "object" && typeof (value as MessageRef).key === "string";
+}
