@@ -13,6 +13,7 @@ import {
 } from "@stash/shared";
 import { toAttachment, type AttachmentRow } from "#media/attachments";
 import { inClause } from "#params";
+import { thumbKey } from "#media/thumbs";
 
 interface MessageRow {
   id: number;
@@ -275,13 +276,14 @@ export async function purgeMessages(db: D1Database, bucket: R2Bucket, ids: numbe
     const list = chunk.map(() => "?").join(",");
     const { results } = await db
       .prepare(
-        `SELECT a.r2_key FROM attachments a JOIN messages m ON m.id = a.message_id
+        `SELECT a.id, a.r2_key, a.kind FROM attachments a JOIN messages m ON m.id = a.message_id
          WHERE m.deleted_at IS NOT NULL AND m.id IN (${list}) AND a.r2_key IS NOT NULL`,
       )
       .bind(...chunk)
-      .all<{ r2_key: string }>();
+      .all<{ id: number; r2_key: string; kind: string }>();
     // Files first: a row without its file is harmless, a file without its row is lost space.
-    if (results.length) await bucket.delete(results.map((r) => r.r2_key));
+    const keys = results.flatMap((r) => (r.kind === "image" ? [r.r2_key, thumbKey(r.id)] : [r.r2_key]));
+    if (keys.length) await bucket.delete(keys);
     const res = await db.prepare(`DELETE FROM messages WHERE deleted_at IS NOT NULL AND id IN (${list})`).bind(...chunk).run();
     purged += res.meta.changes ?? 0;
   }

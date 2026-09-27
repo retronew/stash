@@ -253,6 +253,11 @@ export interface ExportSummary {
   unsaved: number;
 }
 
+/** A small version of a stored image, for lists (falls back to the original). */
+export function thumbnailUrl(id: number): string {
+  return `/api/media/${id}/thumb`;
+}
+
 /** Attachment URL for <img src>, served from R2 by the API. */
 export function attachmentUrl(id: number, download = false): string {
   return `/api/media/${id}${download ? "?download=1" : ""}`;

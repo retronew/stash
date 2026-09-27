@@ -4,6 +4,7 @@ import { resetForRetry } from "#media/attachments";
 import { enqueueDownloads } from "#media/jobs";
 import { mediaStats } from "#messages";
 import { getTask, listTasks } from "#media/tasks";
+import { getThumb } from "#media/thumbs";
 import { ATTACHMENT_KINDS, ATTACHMENT_STATUSES } from "@stash/shared";
 import { cursorParam, limitParam, listParam } from "#params";
 
@@ -37,6 +38,23 @@ mediaRoutes.post("/retry", async (c) => {
   const reset = await resetForRetry(c.env.DB, ids ?? "failed");
   await enqueueDownloads(c.env, reset);
   return c.json({ queued: reset.length });
+});
+
+/** A small WebP of a stored image for lists; the original when one can't be made. */
+mediaRoutes.get("/:id{[0-9]+}/thumb", async (c) => {
+  const id = Number(c.req.param("id"));
+  const row = await c.env.DB.prepare("SELECT r2_key, kind FROM attachments WHERE id = ? AND status = 'stored'")
+    .bind(id)
+    .first<{ r2_key: string; kind: string }>();
+  if (!row) return c.json({ error: "not found" }, 404);
+  const thumb = row.kind === "image" ? await getThumb(c.env, id, row.r2_key) : null;
+  if (!thumb) return c.redirect(`/api/media/${id}`, 302);
+  const headers = new Headers();
+  thumb.writeHttpMetadata(headers);
+  headers.set("ETag", thumb.httpEtag);
+  headers.set("Content-Length", String(thumb.size));
+  headers.set("Cache-Control", "private, max-age=31536000, immutable");
+  return new Response(thumb.body, { headers });
 });
 
 /** The stored file. Supports Range (video seeking) and conditional requests. */

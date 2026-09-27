@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { isPlatform } from "@stash/shared";
 import type { Env } from "#types";
+import { thumbKey } from "#media/thumbs";
 import { publicOrigin } from "#origin";
 import { adapterFor } from "#platforms/index";
 import {
@@ -89,12 +90,15 @@ accountRoutes.patch("/:id", async (c) => {
 /** Deletes the account, its files in R2, and its messages (ON DELETE CASCADE). */
 accountRoutes.delete("/:id", async (c) => {
   const { results } = await c.env.DB.prepare(
-    `SELECT a.r2_key FROM attachments a JOIN messages m ON m.id = a.message_id
+    `SELECT a.id, a.r2_key, a.kind FROM attachments a JOIN messages m ON m.id = a.message_id
      WHERE m.account_id = ? AND a.r2_key IS NOT NULL`,
   )
     .bind(c.req.param("id"))
-    .all<{ r2_key: string }>();
-  const keys = [...results.map((r) => r.r2_key), avatarKey(c.req.param("id"))];
+    .all<{ id: number; r2_key: string; kind: string }>();
+  const keys = [
+    ...results.flatMap((r) => (r.kind === "image" ? [r.r2_key, thumbKey(r.id)] : [r.r2_key])),
+    avatarKey(c.req.param("id")),
+  ];
   // R2 deletes at most 1000 keys per call.
   for (let i = 0; i < keys.length; i += 1000) {
     await c.env.MEDIA.delete(keys.slice(i, i + 1000));

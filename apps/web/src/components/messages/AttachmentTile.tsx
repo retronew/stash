@@ -1,5 +1,5 @@
 import { AlertTriangleIcon, DownloadIcon, FileIcon, FilmIcon, ImageIcon, MusicIcon, RotateCwIcon } from "lucide-react";
-import { attachmentUrl, type Attachment } from "@stash/shared";
+import { attachmentUrl, thumbnailUrl, type Attachment } from "@stash/shared";
 import { Button } from "#components/ui/button";
 import { Spinner } from "#components/ui/spinner";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "#components/ui/tooltip";
@@ -23,7 +23,7 @@ export function AttachmentTile({ attachment: a, onOpen, onRetry }: Props) {
     return (
       <button type="button" className={cn(tileClass, "cursor-zoom-in")} onClick={() => onOpen(a)}>
         <img
-          src={attachmentUrl(a.id)}
+          src={thumbnailUrl(a.id)}
           alt={a.filename}
           loading="lazy"
           decoding="async"

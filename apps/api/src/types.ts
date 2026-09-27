@@ -5,6 +5,8 @@ export interface Env {
   ASSETS: Fetcher;
   /** Downloaded attachments (images, files). */
   MEDIA: R2Bucket;
+  /** Cloudflare Images, for list thumbnails (media/thumbs.ts). Optional: originals are served without it. */
+  IMAGES?: ImagesBinding;
   /** Attachment downloads; consumed by media/consumer.ts. */
   MEDIA_QUEUE: Queue<MediaJob>;
   /** Better Auth: secret for signing sessions (`wrangler secret put`). */
