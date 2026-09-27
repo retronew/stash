@@ -1,4 +1,4 @@
-import { useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react";
+import { useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 
 export interface WindowVirtualListHandle {
@@ -19,6 +19,8 @@ export function WindowVirtualList<T>({
   renderRow,
   overscan = 6,
   handleRef,
+  onEndReached,
+  endThreshold = 5,
 }: {
   rows: T[];
   getKey: (row: T) => string;
@@ -26,6 +28,13 @@ export function WindowVirtualList<T>({
   renderRow: (row: T) => ReactNode;
   overscan?: number;
   handleRef?: Ref<WindowVirtualListHandle>;
+  /**
+   * Infinite scroll (TanStack Virtual's infinite-scroll pattern): called when
+   * a row within `endThreshold` of the end is rendered. The caller guards
+   * against loading twice (e.g. hasNextPage && !isFetchingNextPage).
+   */
+  onEndReached?: () => void;
+  endThreshold?: number;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   // Where the list starts on the page; content above it (search, filters) shifts it.
@@ -48,6 +57,12 @@ export function WindowVirtualList<T>({
     scrollMargin,
   });
 
+  const items = virtualizer.getVirtualItems();
+  const lastIndex = items.length ? items[items.length - 1].index : -1;
+  useEffect(() => {
+    if (onEndReached && rows.length > 0 && lastIndex >= rows.length - 1 - endThreshold) onEndReached();
+  }, [lastIndex, rows.length, endThreshold, onEndReached]);
+
   useImperativeHandle(
     handleRef,
     () => ({ scrollToIndex: (index) => virtualizer.scrollToIndex(index, { align: "auto" }) }),
@@ -56,7 +71,7 @@ export function WindowVirtualList<T>({
 
   return (
     <div ref={listRef} className="relative" style={{ height: virtualizer.getTotalSize() }}>
-      {virtualizer.getVirtualItems().map((v) => (
+      {items.map((v) => (
         <div
           key={v.key}
           data-index={v.index}

@@ -91,7 +91,14 @@ export function MessagesPage() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <MessageList messages={feed.messages} accounts={accounts ?? []} categories={categoryNames} actions={feed} selection={selection}>
+        <MessageList
+          messages={feed.messages}
+          accounts={accounts ?? []}
+          categories={categoryNames}
+          actions={feed}
+          selection={selection}
+          onEndReached={() => feed.hasMore && !feed.loadingMore && feed.loadMore()}
+        >
           <LoadMoreButton hasMore={feed.hasMore} loading={feed.loadingMore} onLoadMore={feed.loadMore} />
         </MessageList>
       )}

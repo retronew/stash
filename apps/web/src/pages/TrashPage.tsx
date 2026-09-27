@@ -89,6 +89,7 @@ export function TrashPage() {
             rows={trash.messages}
             getKey={(msg) => String(msg.id)}
             estimateSize={estimateMessageHeight}
+            onEndReached={() => trash.hasMore && !trash.loadingMore && trash.loadMore()}
             renderRow={(msg) => (
               <div className="pb-3">
                 <MessageCard

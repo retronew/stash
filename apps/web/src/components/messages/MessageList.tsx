@@ -25,12 +25,14 @@ interface Props {
   actions: MessageActions;
   /** Select mode and the selected cards. */
   selection?: MessageSelection;
+  /** Infinite scroll: called as the last cards come into view. */
+  onEndReached?: () => void;
   /** Rendered after the cards, e.g. "load more". */
   children?: ReactNode;
 }
 
 /** Message cards with their actions (retry downloads, analyze, edit labels, move to the recycle bin). */
-export function MessageList({ messages, accounts, categories, actions, selection, children }: Props) {
+export function MessageList({ messages, accounts, categories, actions, selection, onEndReached, children }: Props) {
   const accountById = new Map(accounts.map((a) => [a.id, a]));
 
   async function confirmDelete(message: Message) {
@@ -50,6 +52,7 @@ export function MessageList({ messages, accounts, categories, actions, selection
         rows={messages}
         getKey={(msg) => String(msg.id)}
         estimateSize={estimateMessageHeight}
+        onEndReached={onEndReached}
         renderRow={(msg) => (
           <div className="pb-3">
             <MessageCard
