@@ -6,6 +6,7 @@ import {
   getAccount,
   isValidWebhookKey,
   listAccounts,
+  setAvatarKey,
   toAccount,
   updateAccount,
   type AccountInput,
@@ -87,10 +88,48 @@ accountRoutes.delete("/:id", async (c) => {
   )
     .bind(c.req.param("id"))
     .all<{ r2_key: string }>();
+  const keys = [...results.map((r) => r.r2_key), avatarKey(c.req.param("id"))];
   // R2 deletes at most 1000 keys per call.
-  for (let i = 0; i < results.length; i += 1000) {
-    await c.env.MEDIA.delete(results.slice(i, i + 1000).map((r) => r.r2_key));
+  for (let i = 0; i < keys.length; i += 1000) {
+    await c.env.MEDIA.delete(keys.slice(i, i + 1000));
   }
   const res = await c.env.DB.prepare("DELETE FROM bot_accounts WHERE id = ?").bind(c.req.param("id")).run();
   return res.meta.changes ? c.json({ ok: true }) : c.json({ error: "not found" }, 404);
+});
+
+// A bot's own picture, stored in the media bucket next to the attachments.
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+const avatarKey = (id: string) => `avatars/${id}`;
+
+/** body: the image itself (Content-Type image/*), at most 2 MB. */
+accountRoutes.put("/:id/avatar", async (c) => {
+  const row = await getAccount(c.env.DB, c.req.param("id"));
+  if (!row) return c.json({ error: "not found" }, 404);
+  const type = c.req.header("content-type") ?? "";
+  if (!/^image\/(png|jpeg|gif|webp|svg\+xml|avif)$/.test(type)) return c.json({ error: "unsupported image type" }, 415);
+  const body = await c.req.arrayBuffer();
+  if (body.byteLength === 0 || body.byteLength > AVATAR_MAX_BYTES) return c.json({ error: "image too large" }, 413);
+  await c.env.MEDIA.put(avatarKey(row.id), body, { httpMetadata: { contentType: type } });
+  await setAvatarKey(c.env.DB, row.id, avatarKey(row.id));
+  return c.json(toAccount((await getAccount(c.env.DB, row.id))!));
+});
+
+accountRoutes.delete("/:id/avatar", async (c) => {
+  const row = await getAccount(c.env.DB, c.req.param("id"));
+  if (!row) return c.json({ error: "not found" }, 404);
+  await c.env.MEDIA.delete(avatarKey(row.id));
+  await setAvatarKey(c.env.DB, row.id, null);
+  return c.json(toAccount((await getAccount(c.env.DB, row.id))!));
+});
+
+accountRoutes.get("/:id/avatar", async (c) => {
+  const object = await c.env.MEDIA.get(avatarKey(c.req.param("id")));
+  if (!object) return c.json({ error: "not found" }, 404);
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  // The URL carries ?v=<updated at>, so a new picture gets a new URL.
+  headers.set("Cache-Control", "private, max-age=31536000, immutable");
+  // An uploaded SVG must not run scripts when opened directly.
+  headers.set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+  return new Response(object.body, { headers });
 });

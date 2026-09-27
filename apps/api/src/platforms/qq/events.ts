@@ -35,6 +35,7 @@ interface QQMessageData {
 const CHAT_TYPES: Record<string, ChatType> = {
   C2C_MESSAGE_CREATE: "c2c",
   GROUP_AT_MESSAGE_CREATE: "group",
+  GROUP_MESSAGE_CREATE: "group",
   AT_MESSAGE_CREATE: "channel",
   MESSAGE_CREATE: "channel",
   DIRECT_MESSAGE_CREATE: "dm",

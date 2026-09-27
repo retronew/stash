@@ -1,5 +1,6 @@
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { createCallable } from "react-call";
+import { useEntered } from "#hooks/useEntered";
 import { RefreshCwIcon } from "lucide-react";
 import type { Account } from "@stash/shared";
 import { Dialog, DialogFooter, DialogHeader, DialogPanel, DialogPopup, DialogTitle } from "#components/ui/dialog";
@@ -26,11 +27,7 @@ const KEY_RE = /^[A-Za-z0-9_-]{8,64}$/;
 /** Add or edit a QQ bot: App ID, App Secret and the webhook path. */
 export const AccountFormDialog = createCallable<Props, boolean>(({ account, origin, onSubmit, call }) => {
   const id = useId();
-  const [entered, setEntered] = useState(false);
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => setEntered(true));
-    return () => cancelAnimationFrame(raf);
-  }, []);
+  const entered = useEntered();
   const [form, setForm] = useState<AccountPayload>({
     name: account?.name ?? "",
     appId: account?.appId ?? "",

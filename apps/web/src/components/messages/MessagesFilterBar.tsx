@@ -1,6 +1,7 @@
 import type { Account } from "@stash/shared";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "#components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "#components/ui/toggle-group";
+import { ScrollFade } from "#components/ScrollFade";
+import { AccountSelect } from "#components/AccountSelect";
 import type { MessageFilters } from "#lib/queries";
 import { m } from "#lib/i18n";
 
@@ -30,39 +31,24 @@ interface Props {
 }
 
 export function MessagesFilterBar({ view, onViewChange, account, onAccountChange, accounts }: Props) {
-  const ALL = "__all__";
-  const items: Record<string, string> = { [ALL]: m.filter_all_accounts() };
-  for (const a of accounts) items[a.id] = a.name || a.appId || a.id.slice(0, 8);
-
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <ToggleGroup
-        aria-label={m.filter_view()}
-        variant="outline"
-        size="sm"
-        value={[view]}
-        onValueChange={(v) => v[0] && onViewChange(v[0] as MessageView)}
-      >
-        {VIEWS.map((v) => (
-          <ToggleGroupItem key={v.value} value={v.value}>
-            {v.label()}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
-      {accounts.length > 1 && (
-        <Select value={account || ALL} items={items} onValueChange={(v) => onAccountChange(v === ALL || !v ? "" : String(v))}>
-          <SelectTrigger size="sm" className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectPopup>
-            {Object.entries(items).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectPopup>
-        </Select>
-      )}
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <ScrollFade className="max-w-full">
+        <ToggleGroup
+          aria-label={m.filter_view()}
+          variant="outline"
+          size="sm"
+          value={[view]}
+          onValueChange={(v) => v[0] && onViewChange(v[0] as MessageView)}
+        >
+          {VIEWS.map((v) => (
+            <ToggleGroupItem key={v.value} value={v.value}>
+              {v.label()}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </ScrollFade>
+      <AccountSelect accounts={accounts} value={account} onChange={onAccountChange} />
     </div>
   );
 }

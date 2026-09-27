@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { createCallable } from "react-call";
+import { useEntered } from "#hooks/useEntered";
 import { DownloadIcon } from "lucide-react";
 import { attachmentUrl, type Attachment } from "@stash/shared";
 import { Dialog, DialogFooter, DialogHeader, DialogPopup, DialogTitle } from "#components/ui/dialog";
@@ -13,12 +13,7 @@ interface Props {
 
 /** Full-size view of a stored image, video or audio file, with a download button. */
 export const MediaViewer = createCallable<Props, void>(({ attachment: a, call }) => {
-  // Starts closed so Base UI has a real false→true transition to animate.
-  const [entered, setEntered] = useState(false);
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => setEntered(true));
-    return () => cancelAnimationFrame(raf);
-  }, []);
+  const entered = useEntered();
   const src = attachmentUrl(a.id);
 
   return (

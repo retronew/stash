@@ -1,4 +1,4 @@
-import type { AttachmentKind, ChatType, Platform } from "@stash/shared";
+import type { AttachmentKind, ChatType, EventOutcome, Platform } from "@stash/shared";
 import type { BotAccountRow } from "#accounts";
 
 /** A message in platform-neutral form, ready for ingest.ts. */
@@ -29,6 +29,11 @@ export interface WebhookResult {
   /** What to answer the platform with, once the messages are saved. */
   response: Response;
   messages: IncomingMessage[];
+  /** For the event log: the platform's event name (or e.g. "op13"). */
+  eventType: string;
+  /** Set for calls that carry no message; message calls are logged as stored / duplicate. */
+  outcome?: Exclude<EventOutcome, "stored" | "duplicate" | "error">;
+  detail?: string;
 }
 
 export interface PlatformAdapter {

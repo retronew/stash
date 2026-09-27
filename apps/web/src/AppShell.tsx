@@ -47,6 +47,8 @@ export function AppShell() {
 
   const navItems = [
     { to: "/", label: m.nav_messages(), end: true },
+    { to: "/tasks", label: m.nav_tasks() },
+    { to: "/events", label: m.nav_events() },
     { to: "/settings", label: m.nav_settings() },
   ];
 

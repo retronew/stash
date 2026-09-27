@@ -11,3 +11,6 @@ export async function setSetting(db: D1Database, key: string, value: string) {
     .bind(key, value)
     .run();
 }
+
+/** Settings key of the API token (see routes/settings.ts). */
+export const API_TOKEN_KEY = "api_token";

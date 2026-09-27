@@ -2,7 +2,19 @@
 // pages read through these, and invalidate by the same keys after a write.
 
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
-import type { Account, AttachmentStatus, MediaStats, MessagePage } from "@stash/shared";
+import type {
+  Account,
+  AttachmentKind,
+  AttachmentStatus,
+  EventOutcome,
+  EventPage,
+  EventStats,
+  MediaStats,
+  MediaTaskDetail,
+  MediaTaskPage,
+  MessagePage,
+  WebhookEventDetail,
+} from "@stash/shared";
 import { api } from "#lib/api";
 
 export interface AllowedEmails {
@@ -55,4 +67,68 @@ export const accountsQuery = queryOptions({
 export const allowedEmailsQuery = queryOptions({
   queryKey: ["settings", "allowed-emails"],
   queryFn: () => api<AllowedEmails>("/api/settings/allowed-emails"),
+});
+
+export interface EventFilters {
+  account?: string;
+  /** true: hits, false: misses. */
+  hit?: boolean;
+  outcome?: EventOutcome;
+}
+
+function listUrl(path: string, params: Record<string, string | number | boolean | undefined | null>): string {
+  const search = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === "") continue;
+    search.set(k, typeof v === "boolean" ? (v ? "1" : "0") : String(v));
+  }
+  return `${path}?${search}`;
+}
+
+export const eventsQuery = (filters: EventFilters) =>
+  infiniteQueryOptions({
+    queryKey: ["events", filters],
+    queryFn: ({ pageParam }) =>
+      api<EventPage>(listUrl("/api/events", { ...filters, before: pageParam, limit: 50 })),
+    initialPageParam: null as number | null,
+    getNextPageParam: (last) => last.nextCursor,
+  });
+
+export const eventStatsQuery = (hours: number) =>
+  queryOptions({
+    queryKey: ["events", "stats", hours],
+    queryFn: () => api<EventStats>(`/api/events/stats?hours=${hours}`),
+  });
+
+export const eventDetailQuery = (id: number) =>
+  queryOptions({
+    queryKey: ["events", "detail", id],
+    queryFn: () => api<WebhookEventDetail>(`/api/events/${id}`),
+    staleTime: Infinity,
+  });
+
+export interface TaskFilters {
+  account?: string;
+  status?: AttachmentStatus;
+  kind?: AttachmentKind;
+}
+
+export const tasksQuery = (filters: TaskFilters) =>
+  infiniteQueryOptions({
+    queryKey: ["media", "tasks", filters],
+    queryFn: ({ pageParam }) =>
+      api<MediaTaskPage>(listUrl("/api/media/tasks", { ...filters, before: pageParam, limit: 50 })),
+    initialPageParam: null as number | null,
+    getNextPageParam: (last) => last.nextCursor,
+  });
+
+export const taskDetailQuery = (id: number) =>
+  queryOptions({
+    queryKey: ["media", "tasks", "detail", id],
+    queryFn: () => api<MediaTaskDetail>(`/api/media/tasks/${id}`),
+  });
+
+export const apiTokenQuery = queryOptions({
+  queryKey: ["settings", "api-token"],
+  queryFn: () => api<{ masked: string | null }>("/api/settings/api-token"),
 });

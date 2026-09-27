@@ -32,6 +32,9 @@ export interface Account {
   enabled: boolean;
   /** Last event received, ms. */
   lastEventAt: number | null;
+  /** The bot's own picture, or null to show the platform icon. */
+  avatarUrl: string | null;
+  messageCount: number;
   createdAt: number;
 }
 
@@ -78,6 +81,67 @@ export interface MediaStats {
   stored: number;
   failed: number;
   storedBytes: number;
+}
+
+/**
+ * What became of one webhook call. stored / duplicate are hits (the event
+ * was a message); the rest are misses.
+ */
+export type EventOutcome = "stored" | "duplicate" | "ignored" | "validation" | "rejected" | "error";
+
+export const HIT_OUTCOMES: readonly EventOutcome[] = ["stored", "duplicate"];
+
+export interface WebhookEvent {
+  id: number;
+  /** null when the webhook path matched no bot. */
+  accountId: string | null;
+  platform: Platform;
+  eventType: string;
+  outcome: EventOutcome;
+  detail: string;
+  messageId: number | null;
+  receivedAt: number;
+}
+
+export interface WebhookEventDetail extends WebhookEvent {
+  /** The request body (cut to 16 KB). */
+  raw: string;
+}
+
+export interface EventPage {
+  events: WebhookEvent[];
+  nextCursor: number | null;
+}
+
+/** Counts per outcome over the last `sinceHours`. */
+export interface EventStats {
+  sinceHours: number;
+  total: number;
+  byOutcome: Record<EventOutcome, number>;
+}
+
+/** An attachment download with the message it belongs to, for the task queue. */
+export interface MediaTask extends Attachment {
+  messageId: number;
+  accountId: string;
+  platform: Platform;
+  senderName: string;
+  /** The message text, cut short. */
+  text: string;
+  createdAt: number;
+  updatedAt: number;
+  /** When the next queued retry is due. */
+  nextRetryAt: number | null;
+}
+
+export interface MediaTaskDetail extends MediaTask {
+  sourceUrl: string;
+  r2Key: string | null;
+}
+
+export interface MediaTaskPage {
+  tasks: MediaTask[];
+  nextCursor: number | null;
 }
 
 /** Attachment URL for <img src>, served from R2 by the API. */

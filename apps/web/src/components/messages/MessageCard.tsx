@@ -4,6 +4,7 @@ import { Card } from "#components/ui/card";
 import { Badge } from "#components/ui/badge";
 import { Button } from "#components/ui/button";
 import { AttachmentTile } from "#components/messages/AttachmentTile";
+import { BotAvatar } from "#components/BotAvatar";
 import { chatTypeLabel, platformLabel } from "#lib/labels";
 import { formatDateTime, formatRelative } from "#lib/format";
 import { m } from "#lib/i18n";
@@ -20,6 +21,7 @@ export function MessageCard({ message, account, onOpen, onRetry, onDelete }: Pro
   return (
     <Card className="gap-3 p-4 shadow-none before:shadow-none dark:before:shadow-none">
       <div className="flex items-center gap-2 text-sm">
+        <BotAvatar account={account} platform={message.platform} />
         <Badge variant="secondary">{account?.name || platformLabel(message.platform)}</Badge>
         <span className="text-muted-foreground">{chatTypeLabel(message.chatType)}</span>
         {message.senderName && <span className="truncate">{message.senderName}</span>}

@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import type { Message } from "@stash/shared";
-import { Button } from "#components/ui/button";
-import { Spinner } from "#components/ui/spinner";
+import { LoadMoreButton } from "#components/LoadMoreButton";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "#components/ui/empty";
 import { PageLoading } from "#components/PageLoading";
 import { Confirm } from "#components/Confirm";
@@ -36,7 +35,7 @@ export function MessagesPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-heading text-lg font-semibold">{m.nav_messages()}</h1>
-        <MediaStatsBar onRetryAll={() => feed.retry()} />
+        <MediaStatsBar />
       </div>
       <MessagesFilterBar
         view={view}
@@ -80,12 +79,7 @@ export function MessagesPage() {
               onDelete={confirmDelete}
             />
           ))}
-          {feed.hasMore && (
-            <Button variant="outline" className="mx-auto" disabled={feed.loadingMore} onClick={feed.loadMore}>
-              {feed.loadingMore && <Spinner />}
-              {m.action_load_more()}
-            </Button>
-          )}
+          <LoadMoreButton hasMore={feed.hasMore} loading={feed.loadingMore} onLoadMore={feed.loadMore} />
         </div>
       )}
       <Confirm />

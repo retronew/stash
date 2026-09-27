@@ -3,6 +3,8 @@ import { isLocale } from "@stash/shared/i18n";
 import type { Env } from "#types";
 import { ownerEmails, getExtraEmails, setExtraEmails, parseEmails, isValidEmail } from "#auth";
 import { getLocale, setLocale } from "#locale";
+import { API_TOKEN_KEY, getSetting, setSetting } from "#settings";
+import { maskSecret } from "#accounts";
 
 export const settingsRoutes = new Hono<{ Bindings: Env }>();
 
@@ -32,4 +34,23 @@ settingsRoutes.put("/locale", async (c) => {
   if (!isLocale(body.locale)) return c.json({ error: "unsupported locale" }, 400);
   await setLocale(c.env.DB, body.locale);
   return c.json({ locale: body.locale });
+});
+
+// API token: `Authorization: Bearer <token>` for scripts (e.g. backing up
+// files). Shown once when generated; masked afterwards.
+
+settingsRoutes.get("/api-token", async (c) => {
+  const token = await getSetting(c.env.DB, API_TOKEN_KEY);
+  return c.json({ masked: token ? maskSecret(token) : null });
+});
+
+settingsRoutes.post("/api-token/reset", async (c) => {
+  const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+  await setSetting(c.env.DB, API_TOKEN_KEY, token);
+  return c.json({ token });
+});
+
+settingsRoutes.delete("/api-token", async (c) => {
+  await c.env.DB.prepare("DELETE FROM settings WHERE key = ?").bind(API_TOKEN_KEY).run();
+  return c.json({ ok: true });
 });

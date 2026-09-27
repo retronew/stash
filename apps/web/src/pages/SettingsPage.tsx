@@ -1,8 +1,8 @@
 import type { ComponentType, ReactNode } from "react";
 import { useSearchParams } from "react-router";
-import { BotIcon, HardDriveDownloadIcon, ShieldCheckIcon } from "lucide-react";
+import { BotIcon, ShieldCheckIcon } from "lucide-react";
 import { AccountsCard } from "#components/settings/accounts/AccountsCard";
-import { MediaQueueCard } from "#components/settings/MediaQueueCard";
+import { ApiTokenCard } from "#components/settings/ApiTokenCard";
 import { AllowedEmailsCard } from "#components/settings/AllowedEmailsCard";
 import { BuildInfo } from "#components/settings/BuildInfo";
 import { SettingsTabHeader } from "#components/settings/SettingsTabHeader";
@@ -28,18 +28,16 @@ const TABS: SettingsTab[] = [
     content: <AccountsCard />,
   },
   {
-    id: "media",
-    label: m.settings_tab_media(),
-    icon: HardDriveDownloadIcon,
-    description: m.settings_tab_media_description(),
-    content: <MediaQueueCard />,
-  },
-  {
     id: "access",
     label: m.settings_tab_access(),
     icon: ShieldCheckIcon,
     description: m.settings_tab_access_description(),
-    content: <AllowedEmailsCard />,
+    content: (
+      <>
+        <AllowedEmailsCard />
+        <ApiTokenCard />
+      </>
+    ),
   },
 ];
 

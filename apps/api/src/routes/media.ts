@@ -3,10 +3,35 @@ import type { Env } from "#types";
 import { resetForRetry } from "#media/attachments";
 import { enqueueDownloads } from "#media/jobs";
 import { mediaStats } from "#messages";
+import { getTask, listTasks } from "#media/tasks";
+import type { AttachmentKind, AttachmentStatus } from "@stash/shared";
 
 export const mediaRoutes = new Hono<{ Bindings: Env }>();
 
+const STATUSES: AttachmentStatus[] = ["pending", "downloading", "stored", "failed"];
+const KINDS: AttachmentKind[] = ["image", "video", "audio", "file"];
+
 mediaRoutes.get("/stats", async (c) => c.json(await mediaStats(c.env.DB)));
+
+/** Download tasks: ?before=<id>&limit=&status=&kind=&account= */
+mediaRoutes.get("/tasks", async (c) => {
+  const q = c.req.query();
+  const before = Number(q.before);
+  return c.json(
+    await listTasks(c.env.DB, {
+      before: Number.isInteger(before) && before > 0 ? before : undefined,
+      limit: Math.min(Math.max(Number(q.limit) || 50, 1), 100),
+      status: STATUSES.find((s) => s === q.status),
+      kind: KINDS.find((k) => k === q.kind),
+      accountId: q.account || undefined,
+    }),
+  );
+});
+
+mediaRoutes.get("/tasks/:id{[0-9]+}", async (c) => {
+  const task = await getTask(c.env.DB, Number(c.req.param("id")));
+  return task ? c.json(task) : c.json({ error: "not found" }, 404);
+});
 
 /** body: { ids?: number[] } — retry these failed attachments, or every failed one. */
 mediaRoutes.post("/retry", async (c) => {

@@ -10,6 +10,7 @@ import { messageRoutes } from "#routes/messages";
 import { mediaRoutes } from "#routes/media";
 import { accountRoutes } from "#routes/accounts";
 import { settingsRoutes } from "#routes/settings";
+import { eventRoutes } from "#routes/events";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -33,6 +34,7 @@ app.route("/api/webhooks", webhookRoutes);
 app.route("/api/messages", messageRoutes);
 app.route("/api/media", mediaRoutes);
 app.route("/api/accounts", accountRoutes);
+app.route("/api/events", eventRoutes);
 app.route("/api/settings", settingsRoutes);
 
 export default {

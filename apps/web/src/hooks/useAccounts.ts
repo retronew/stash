@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Account, Platform } from "@stash/shared";
-import { api } from "#lib/api";
+import { api, ApiError } from "#lib/api";
+import { m } from "#lib/i18n";
 import { accountsQuery } from "#lib/queries";
 
 export interface AccountPayload {
@@ -35,6 +36,25 @@ export function useAccounts() {
     await Promise.all([refresh(), queryClient.invalidateQueries({ queryKey: ["messages"] })]);
   }
 
+  /** Uploads a bot's picture (an image file, at most 2 MB). */
+  async function uploadAvatar(id: string, file: File) {
+    const res = await fetch(`/api/accounts/${id}/avatar`, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new ApiError(typeof data.error === "string" ? data.error : m.error_status({ status: res.status }), res.status);
+    }
+    await refresh();
+  }
+
+  async function removeAvatar(id: string) {
+    await api(`/api/accounts/${id}/avatar`, { method: "DELETE" });
+    await refresh();
+  }
+
   return {
     origin: query.data?.origin ?? window.location.origin,
     accounts: query.data?.accounts ?? null,
@@ -42,6 +62,8 @@ export function useAccounts() {
     create,
     update,
     remove,
+    uploadAvatar,
+    removeAvatar,
   };
 }
 

@@ -9,8 +9,12 @@ export interface BotAccountRow {
   webhook_key: string;
   enabled: number;
   last_event_at: number | null;
+  avatar_key: string | null;
+  avatar_updated_at: number | null;
   created_at: number;
   updated_at: number;
+  /** Only from listAccounts. */
+  message_count?: number;
 }
 
 export function maskSecret(secret: string): string {
@@ -29,6 +33,8 @@ export function toAccount(row: BotAccountRow): Account {
     webhookKey: row.webhook_key,
     enabled: row.enabled === 1,
     lastEventAt: row.last_event_at,
+    avatarUrl: row.avatar_key ? `/api/accounts/${row.id}/avatar?v=${row.avatar_updated_at ?? 0}` : null,
+    messageCount: row.message_count ?? 0,
     createdAt: row.created_at,
   };
 }
@@ -44,7 +50,12 @@ export function isValidWebhookKey(key: string): boolean {
 }
 
 export async function listAccounts(db: D1Database): Promise<BotAccountRow[]> {
-  const { results } = await db.prepare("SELECT * FROM bot_accounts ORDER BY created_at").all<BotAccountRow>();
+  const { results } = await db
+    .prepare(
+      `SELECT b.*, (SELECT COUNT(*) FROM messages m WHERE m.account_id = b.id) AS message_count
+       FROM bot_accounts b ORDER BY b.created_at`,
+    )
+    .all<BotAccountRow>();
   return results;
 }
 
@@ -112,4 +123,11 @@ export async function updateAccount(db: D1Database, row: BotAccountRow, input: A
 
 export async function touchAccount(db: D1Database, id: string) {
   await db.prepare("UPDATE bot_accounts SET last_event_at = ? WHERE id = ?").bind(Date.now(), id).run();
+}
+
+export async function setAvatarKey(db: D1Database, id: string, key: string | null) {
+  await db
+    .prepare("UPDATE bot_accounts SET avatar_key = ?, avatar_updated_at = ? WHERE id = ?")
+    .bind(key, Date.now(), id)
+    .run();
 }

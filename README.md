@@ -6,10 +6,13 @@
 
 ## Features
 
-- **QQ bots**: add a bot on the QQ Open Platform, paste its AppID / AppSecret into Settings and the webhook URL Stash shows into the QQ console. Stash answers the callback URL check (op 13) and verifies the Ed25519 signature of every event. Direct messages, group @-messages and channel messages are stored; a redelivered event is stored once
+- **QQ bots**: add a bot on the QQ Open Platform, paste its AppID / AppSecret into Settings and the webhook URL Stash shows into the QQ console. Stash answers the callback URL check (op 13) and verifies the Ed25519 signature of every event. Direct messages, group messages (with or without an @) and channel messages are stored; a redelivered event is stored once. Each bot can have its own picture (the QQ Bot icon otherwise)
 - **Reliable file saving**: the webhook only writes the message to D1 and queues its attachments, so QQ gets its answer quickly. A queue consumer streams each file into R2 without buffering it, so files of tens or hundreds of MB fit (known length: one streamed PUT; unknown length or over 5 GB: multipart upload in 10 MB parts), and checks the stored size against `Content-Length`
 - **Retries**: network errors, timeouts, truncated downloads, 408 / 429 / 5xx are retried 9 times, backing off from 30 seconds to 2 hours (about 5 hours in total, within the free plan's 24-hour queue retention). Expired links (other 4xx) fail at once. A dead-letter queue catches consumers that crash, and a sweep every 10 minutes re-queues attachments whose queue message was lost or whose download died. Failed files can be retried one by one or all at once from the web app
-- **Web app**: a feed of messages with image thumbnails, a full-size viewer (images, video, audio) and downloads; filter by bot, "with files" or "failed"; download queue stats
+- **Web app**: a feed of messages with image thumbnails, a full-size viewer (images, video, audio) and downloads; filter by bot, "with files" or "failed"
+- **Task queue**: every download with summary tiles (saved, storage used, in progress, failed), filters by status, type and bot, per-task details (sizes, attempts, error, next retry, source URL, R2 key) and retry
+- **Event log**: every webhook call is kept for 30 days, hits (saved as a message, or a redelivery) and misses (ignored events, URL checks, rejected calls such as a bad signature or unknown bot, storage errors), with the raw payload. QQ event names are translated; new ones show their raw name
+- **API token**: `Authorization: Bearer <token>` lets scripts read the API, e.g. to back up messages and files
 - **Sign-in**: Google / GitHub via [Better Auth](https://better-auth.com), restricted to an email allowlist that can be edited in Settings (no passwords)
 - **Languages**: Chinese, English and Japanese interface; **Theme**: System / Light / Dark
 

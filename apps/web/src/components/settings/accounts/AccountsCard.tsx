@@ -12,7 +12,7 @@ import { m } from "#lib/i18n";
 
 /** QQ bots Stash receives from, with the webhook URL to paste into the QQ console. */
 export function AccountsCard() {
-  const { accounts, origin, error, create, update, remove } = useAccounts();
+  const { accounts, origin, error, create, update, remove, uploadAvatar, removeAvatar } = useAccounts();
 
   async function edit(account: Account | null) {
     const saved = await AccountFormDialog.call({
@@ -49,7 +49,15 @@ export function AccountsCard() {
         {!accounts && !error && <ListSkeleton rows={2} />}
         {error && <p className="text-destructive text-xs">{m.load_failed({ error: errorMessage(error) })}</p>}
         {accounts?.map((a) => (
-          <AccountRow key={a.id} account={a} origin={origin} onEdit={() => edit(a)} onDelete={() => confirmRemove(a)} />
+          <AccountRow
+            key={a.id}
+            account={a}
+            origin={origin}
+            onEdit={() => edit(a)}
+            onDelete={() => confirmRemove(a)}
+            onUploadAvatar={(file) => uploadAvatar(a.id, file)}
+            onRemoveAvatar={() => removeAvatar(a.id)}
+          />
         ))}
         <Button variant="outline" onClick={() => edit(null)}>
           <PlusIcon />

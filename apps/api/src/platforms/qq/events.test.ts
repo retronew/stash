@@ -53,6 +53,14 @@ describe("parseMessageEvent", () => {
     expect(msg).toMatchObject({ chatType: "group", chatId: "G", senderId: "M" });
   });
 
+  it("also keeps group messages that don't @ the bot", () => {
+    const msg = parseMessageEvent(
+      { op: 0, t: "GROUP_MESSAGE_CREATE", d: { id: "2", group_openid: "G", author: { member_openid: "M" } } },
+      "",
+    );
+    expect(msg).toMatchObject({ chatType: "group", chatId: "G" });
+  });
+
   it("ignores other events and messages without an id", () => {
     expect(parseMessageEvent({ op: 0, t: "FRIEND_ADD", d: { id: "1" } }, "")).toBeNull();
     expect(parseMessageEvent({ op: 0, t: "C2C_MESSAGE_CREATE", d: {} }, "")).toBeNull();

@@ -5,6 +5,8 @@ import "./index.css";
 import { AppShell } from "#AppShell";
 import { MessagesPage } from "#pages/MessagesPage";
 import { SettingsPage } from "#pages/SettingsPage";
+import { TasksPage } from "#pages/TasksPage";
+import { EventsPage } from "#pages/EventsPage";
 import { LoginPage } from "#pages/LoginPage";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { ToastProvider } from "#components/ui/toast";
@@ -22,6 +24,8 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/login" element={<LoginPage />} />
         <Route element={<AppShell />}>
           <Route path="/" element={<MessagesPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/events" element={<EventsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>
