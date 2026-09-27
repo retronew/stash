@@ -20,6 +20,7 @@ import { useAccounts } from "#hooks/useAccounts";
 import { useAnalysis } from "#hooks/useAnalysis";
 import { useMessageSelection } from "#hooks/useMessageSelection";
 import { BulkActionBar } from "#components/messages/BulkActionBar";
+import type { LabelPick } from "#components/messages/MessageInsights";
 import { TagsEditDialog } from "#components/messages/TagsEditDialog";
 import { analysisCategoriesFrom } from "#lib/categories";
 import { categoriesQuery, chatsQuery } from "#lib/queries";
@@ -42,6 +43,11 @@ export function MessagesPage() {
   const allTags = [...new Set(shown.flatMap((msg) => msg.tags))].sort();
   const selection = useMessageSelection(shown, allTags);
   const categoryNames = categories.map((c) => c.category);
+  // A category or tag clicked on a card joins the filters.
+  const pickLabel = (label: LabelPick) =>
+    "category" in label
+      ? set({ categories: [...new Set([...filters.categories, label.category])] })
+      : set({ tags: [...new Set([...filters.tags, label.tag])] });
 
   return (
     <div className="space-y-4">
@@ -65,7 +71,7 @@ export function MessagesPage() {
       {selection.selectMode && <BulkActionBar selection={selection} categories={categoryNames} />}
 
       {search.active ? (
-        <SearchResults search={search} accounts={accounts ?? []} categories={categoryNames} actions={feed} selection={selection} />
+        <SearchResults search={search} accounts={accounts ?? []} categories={categoryNames} actions={feed} selection={selection} onPickLabel={pickLabel} />
       ) : feed.isLoading ? (
         <PageLoading />
       ) : feed.error ? (
@@ -97,6 +103,7 @@ export function MessagesPage() {
           categories={categoryNames}
           actions={feed}
           selection={selection}
+          onPickLabel={pickLabel}
           onEndReached={() => feed.hasMore && !feed.loadingMore && feed.loadMore()}
         >
           <LoadMoreButton hasMore={feed.hasMore} loading={feed.loadingMore} onLoadMore={feed.loadMore} />

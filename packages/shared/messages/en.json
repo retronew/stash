@@ -509,6 +509,7 @@
   "filter_status": "Status",
   "filters_toggle": "Filters",
   "insights_analyzing": "Analyzing…",
+  "insights_filter_by": "Filter by this",
   "insights_details": "Details",
   "insights_failed": "Analysis failed: {error}",
   "insights_image_text": "Text in images",

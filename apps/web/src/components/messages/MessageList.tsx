@@ -9,6 +9,7 @@ import { estimateMessageHeight } from "#lib/message-height";
 import { m } from "#lib/i18n";
 import { MessageMenuItems } from "#components/messages/MessageMenuItems";
 import type { MessageSelection } from "#hooks/useMessageSelection";
+import type { LabelPick } from "#components/messages/MessageInsights";
 
 export interface MessageActions {
   remove: (id: number) => Promise<void>;
@@ -25,6 +26,8 @@ interface Props {
   actions: MessageActions;
   /** Select mode and the selected cards. */
   selection?: MessageSelection;
+  /** Filters the list by a clicked category or tag. */
+  onPickLabel?: (label: LabelPick) => void;
   /** Infinite scroll: called as the last cards come into view. */
   onEndReached?: () => void;
   /** Rendered after the cards, e.g. "load more". */
@@ -32,7 +35,7 @@ interface Props {
 }
 
 /** Message cards with their actions (retry downloads, analyze, edit labels, move to the recycle bin). */
-export function MessageList({ messages, accounts, categories, actions, selection, onEndReached, children }: Props) {
+export function MessageList({ messages, accounts, categories, actions, selection, onPickLabel, onEndReached, children }: Props) {
   const accountById = new Map(accounts.map((a) => [a.id, a]));
 
   async function confirmDelete(message: Message) {
@@ -63,6 +66,7 @@ export function MessageList({ messages, accounts, categories, actions, selection
               selectMode={selection?.selectMode}
               selected={selection?.selectedIds.has(msg.id)}
               onToggleSelect={selection?.toggle}
+              onPickLabel={onPickLabel}
               menu={
                 <MessageMenuItems
                   message={msg}

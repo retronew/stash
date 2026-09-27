@@ -6,7 +6,7 @@ import { Badge } from "#components/ui/badge";
 import { Button } from "#components/ui/button";
 import { Menu, MenuPopup, MenuTrigger } from "#components/ui/menu";
 import { AttachmentTile } from "#components/messages/AttachmentTile";
-import { MessageInsights } from "#components/messages/MessageInsights";
+import { MessageInsights, type LabelPick } from "#components/messages/MessageInsights";
 import { BotAvatar } from "#components/BotAvatar";
 import { SelectionCheckbox } from "#components/SelectionCheckbox";
 import { cn } from "#lib/utils";
@@ -25,9 +25,11 @@ interface Props {
   selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: (id: number) => void;
+  /** Filters the list by a clicked category or tag. */
+  onPickLabel?: (label: LabelPick) => void;
 }
 
-export function MessageCard({ message, account, onOpen, onRetry, menu, selectMode, selected, onToggleSelect }: Props) {
+export function MessageCard({ message, account, onOpen, onRetry, menu, selectMode, selected, onToggleSelect, onPickLabel }: Props) {
   return (
     <Card
       onClickCapture={(e) => {
@@ -73,7 +75,7 @@ export function MessageCard({ message, account, onOpen, onRetry, menu, selectMod
           ))}
         </div>
       )}
-      <MessageInsights message={message} />
+      <MessageInsights message={message} onPick={onPickLabel} />
     </Card>
   );
 }

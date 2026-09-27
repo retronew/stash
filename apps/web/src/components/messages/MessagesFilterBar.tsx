@@ -19,6 +19,7 @@ export const EMPTY_MESSAGE_FILTERS: MessageFilters = {
   chatTypes: [],
   chatIds: [],
   categories: [],
+  tags: [],
   media: "all",
   period: "all",
 };
@@ -70,6 +71,7 @@ export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats,
       ? []
       : [{ key: "media", label: optionLabel(media, filters.media), onRemove: () => onChange({ media: "all" }) }]),
     ...chipsFor("category", filters.categories, (v) => v, setCategories),
+    ...chipsFor("tag", filters.tags, (v) => `#${v}`, (tags) => onChange({ tags })),
     ...chipsFor("platform", filters.platforms, (v) => optionLabel(platforms, v), setPlatforms),
     ...chipsFor("bot", filters.accounts, (v) => optionLabel(bots, v), setBots),
     ...chipsFor("chat", filters.chatTypes, (v) => chatTypeLabel(v as ChatType), setChats),

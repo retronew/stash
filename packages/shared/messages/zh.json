@@ -509,6 +509,7 @@
   "filter_status": "状态",
   "filters_toggle": "筛选",
   "insights_analyzing": "AI 识别中…",
+  "insights_filter_by": "按此筛选",
   "insights_details": "识别详情",
   "insights_failed": "识别失败：{error}",
   "insights_image_text": "图中文字",

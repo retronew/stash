@@ -4,6 +4,7 @@ import { PageLoading } from "#components/PageLoading";
 import { MessageList, type MessageActions } from "#components/messages/MessageList";
 import type { useMessageSearch } from "#hooks/useMessageSearch";
 import type { MessageSelection } from "#hooks/useMessageSelection";
+import type { LabelPick } from "#components/messages/MessageInsights";
 import { errorMessage } from "#lib/api";
 import { m } from "#lib/i18n";
 
@@ -13,10 +14,11 @@ interface Props {
   categories: string[];
   actions: MessageActions;
   selection?: MessageSelection;
+  onPickLabel?: (label: LabelPick) => void;
 }
 
 /** Search results, best first, with a note on whether semantic search took part. */
-export function SearchResults({ search, accounts, categories, actions, selection }: Props) {
+export function SearchResults({ search, accounts, categories, actions, selection, onPickLabel }: Props) {
   if (search.isLoading) return <PageLoading />;
   if (search.error) return <p className="text-destructive text-sm">{m.load_failed({ error: errorMessage(search.error) })}</p>;
   if (search.hits.length === 0) {
@@ -34,7 +36,7 @@ export function SearchResults({ search, accounts, categories, actions, selection
       <p className="text-muted-foreground text-xs">
         {m.search_count({ count: search.hits.length })} · {search.semantic ? m.search_mode_hybrid() : m.search_mode_keyword()}
       </p>
-      <MessageList messages={search.hits} accounts={accounts} categories={categories} actions={actions} selection={selection} />
+      <MessageList messages={search.hits} accounts={accounts} categories={categories} actions={actions} selection={selection} onPickLabel={onPickLabel} />
     </div>
   );
 }

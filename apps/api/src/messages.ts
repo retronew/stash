@@ -55,6 +55,8 @@ export interface MessageQuery {
   chatIds?: string[];
   /** Any of these categories ("" = not categorized). */
   categories?: string[];
+  /** Any of these tags. */
+  tags?: string[];
   /** Only messages with at least one attachment. */
   withMedia?: boolean;
   /** Text or sender name contains this (case-insensitive for ASCII). */
@@ -82,6 +84,7 @@ export function messageWhere(q: MessageQuery, params: unknown[]): string[] {
   if (q.chatTypes?.length) where.push(inClause("m.chat_type", q.chatTypes, params));
   if (q.chatIds?.length) where.push(inClause("m.chat_id", q.chatIds, params));
   if (q.categories?.length) where.push(inClause("m.category", q.categories, params));
+  if (q.tags?.length) where.push(`EXISTS (SELECT 1 FROM json_each(m.tags) t WHERE ${inClause("t.value", q.tags, params)})`);
   if (q.query) {
     // "!" escapes LIKE's wildcards, so a search for "50%" means the text "50%".
     where.push("(m.text LIKE ? ESCAPE '!' OR m.sender_name LIKE ? ESCAPE '!')");

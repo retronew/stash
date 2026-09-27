@@ -11,7 +11,7 @@ function timeParam(value: string | undefined): number | undefined {
 
 /**
  * The message filters shared by /api/messages and /api/export:
- * q, platform, account, chat (types), chatid, category (lists comma separated), since / until, media=1, status, trash=1.
+ * q, platform, account, chat (types), chatid, category, tag (lists comma separated), since / until, media=1, status, trash=1.
  */
 export function messageQueryParams(q: Record<string, string | undefined>): MessageQuery {
   return {
@@ -21,6 +21,7 @@ export function messageQueryParams(q: Record<string, string | undefined>): Messa
     chatTypes: listParam(q.chat, CHAT_TYPES),
     chatIds: listParam(q.chatid),
     categories: listParam(q.category),
+    tags: listParam(q.tag),
     since: timeParam(q.since),
     until: timeParam(q.until),
     withMedia: q.media === "1",

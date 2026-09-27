@@ -18,8 +18,21 @@ const FIELD_LABELS: Record<keyof MessageFields, () => string> = {
   people: () => m.field_people(),
 };
 
+/** A category or tag clicked on a card, to filter the list by it. */
+export type LabelPick = { category: string } | { tag: string };
+
+/** Makes a badge a button when the list can filter by it. */
+function pickable(onPick: ((label: LabelPick) => void) | undefined, label: LabelPick) {
+  if (!onPick) return {};
+  return {
+    render: <button type="button" onClick={() => onPick(label)} />,
+    className: "cursor-pointer hover:bg-accent",
+    title: m.insights_filter_by(),
+  };
+}
+
 /** What AI analysis found: category, tags, summary, and on demand the image text and key fields. */
-export function MessageInsights({ message }: { message: Message }) {
+export function MessageInsights({ message, onPick }: { message: Message; onPick?: (label: LabelPick) => void }) {
   const [open, setOpen] = useState(false);
   const fields = FIELD_KEYS.filter((k) => message.fields[k].length > 0);
   const hasDetails = !!message.ocrText || fields.length > 0;
@@ -44,9 +57,13 @@ export function MessageInsights({ message }: { message: Message }) {
     <div className="space-y-1.5 rounded-lg bg-muted/40 px-3 py-2">
       <div className="flex flex-wrap items-center gap-1.5">
         <SparklesIcon className="size-3.5 text-muted-foreground" />
-        {message.category && <Badge variant="info">{message.category}</Badge>}
+        {message.category && (
+          <Badge variant="info" {...pickable(onPick, { category: message.category })}>
+            {message.category}
+          </Badge>
+        )}
         {message.tags.map((t) => (
-          <Badge key={t} variant="outline">
+          <Badge key={t} variant="outline" {...pickable(onPick, { tag: t })}>
             #{t}
           </Badge>
         ))}

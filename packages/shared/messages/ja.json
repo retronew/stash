@@ -509,6 +509,7 @@
   "filter_status": "状態",
   "filters_toggle": "絞り込み",
   "insights_analyzing": "解析中…",
+  "insights_filter_by": "これで絞り込む",
   "insights_details": "詳細",
   "insights_failed": "解析に失敗しました：{error}",
   "insights_image_text": "画像内の文字",
