@@ -4,7 +4,7 @@ import { BotIcon, DatabaseIcon, ShieldCheckIcon } from "lucide-react";
 import { AccountsCard } from "#components/settings/accounts/AccountsCard";
 import { ApiTokenCard } from "#components/settings/ApiTokenCard";
 import { McpCard } from "#components/settings/McpCard";
-import { RetentionCard } from "#components/settings/data/RetentionCard";
+import { RetentionCard } from "#components/settings/retention/RetentionCard";
 import { AllowedEmailsCard } from "#components/settings/AllowedEmailsCard";
 import { BuildInfo } from "#components/settings/BuildInfo";
 import { SettingsTabHeader } from "#components/settings/SettingsTabHeader";
