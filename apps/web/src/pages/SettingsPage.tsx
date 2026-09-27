@@ -1,9 +1,13 @@
 import type { ComponentType, ReactNode } from "react";
 import { useSearchParams } from "react-router";
-import { BotIcon, DatabaseIcon, ShieldCheckIcon } from "lucide-react";
+import { BotIcon, DatabaseIcon, ShieldCheckIcon, SparklesIcon } from "lucide-react";
 import { AccountsCard } from "#components/settings/accounts/AccountsCard";
 import { ApiTokenCard } from "#components/settings/ApiTokenCard";
 import { McpCard } from "#components/settings/McpCard";
+import { AiSettingsCard } from "#components/settings/ai/AiSettingsCard";
+import { AiLanguageCard } from "#components/settings/ai/AiLanguageCard";
+import { AnalysisSettingsCard } from "#components/settings/analysis/AnalysisSettingsCard";
+import { AnalysisStatusCard } from "#components/settings/analysis/AnalysisStatusCard";
 import { RetentionCard } from "#components/settings/retention/RetentionCard";
 import { ExportCard } from "#components/settings/retention/ExportCard";
 import { AllowedEmailsCard } from "#components/settings/AllowedEmailsCard";
@@ -29,6 +33,20 @@ const TABS: SettingsTab[] = [
     icon: BotIcon,
     description: m.settings_tab_accounts_description(),
     content: <AccountsCard />,
+  },
+  {
+    id: "ai",
+    label: m.settings_tab_ai(),
+    icon: SparklesIcon,
+    description: m.settings_tab_ai_description(),
+    content: (
+      <>
+        <AiSettingsCard />
+        <AnalysisSettingsCard />
+        <AnalysisStatusCard />
+        <AiLanguageCard />
+      </>
+    ),
   },
   {
     id: "data",

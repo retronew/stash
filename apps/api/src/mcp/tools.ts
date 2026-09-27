@@ -1,6 +1,7 @@
 import { CHAT_TYPES, attachmentUrl, type Attachment, type ChatType, type Message } from "@stash/shared";
 import type { Env } from "#types";
 import { getMessage, listMessages, mediaStats } from "#messages";
+import { searchMessages } from "#search";
 import { listAccounts } from "#accounts";
 import { listTasks } from "#media/tasks";
 import { resetForRetry } from "#media/attachments";
@@ -87,6 +88,14 @@ function message(msg: Message, origin: string) {
     text: msg.text,
     sentAt: new Date(msg.sentAt).toISOString(),
     attachments: msg.attachments.map((a) => attachment(a, origin)),
+    // From AI analysis (empty until analyzed).
+    ...(msg.category ? { category: msg.category } : {}),
+    ...(msg.tags.length ? { tags: msg.tags } : {}),
+    ...(msg.summary ? { summary: msg.summary } : {}),
+    ...(msg.ocrText ? { imageText: msg.ocrText } : {}),
+    ...(Object.values(msg.fields).some((v) => v.length)
+      ? { fields: Object.fromEntries(Object.entries(msg.fields).filter(([, v]) => v.length)) }
+      : {}),
   };
 }
 
@@ -102,15 +111,18 @@ export const TOOLS: Tool[] = [
     name: "search_messages",
     title: "Search messages",
     description:
-      "Find messages the user received through their chat bots, newest first. All filters are " +
-      "optional: text (matches the message or the sender's name), bots, chat types, a date range, " +
-      "and only messages with files. Stored files come with a URL (needs the same API token).",
+      "Find messages the user received through their chat bots. With text: best matches first, " +
+      "matching the message, sender, AI summary, text read from images, tags and category, and by " +
+      "meaning when semantic search is set up. Without text: newest first. Other filters: bots, chat " +
+      "types, categories, a date range, only messages with files. Results include AI-extracted " +
+      "fields (amounts, dates, phones, codes…). Stored files come with a URL (needs the same API token).",
     inputSchema: {
       type: "object",
       properties: {
         text: { type: "string", description: "Words the message text or sender name contains" },
         bots: { type: "array", items: { type: "string" }, description: "Bot ids from list_bots" },
         chat_types: { type: "array", items: { type: "string", enum: [...CHAT_TYPES] } },
+        categories: { type: "array", items: { type: "string" }, description: "AI categories, e.g. 票据" },
         since: { type: "string", description: "ISO date or datetime (inclusive)" },
         until: { type: "string", description: "ISO date or datetime (exclusive)" },
         with_files: { type: "boolean", description: "Only messages that have attachments" },
@@ -120,13 +132,21 @@ export const TOOLS: Tool[] = [
     },
     annotations: { readOnlyHint: true },
     async run(args, { env, origin }) {
-      const page = await listMessages(env.DB, {
-        query: str(args.text) || undefined,
+      const filter = {
         accountIds: strings(args.bots),
         chatTypes: strings(args.chat_types).filter((t): t is ChatType => (CHAT_TYPES as readonly string[]).includes(t)),
+        categories: strings(args.categories),
         since: date(args.since, "since"),
         until: date(args.until, "until"),
         withMedia: args.with_files === true,
+      };
+      const text = str(args.text);
+      if (text) {
+        const { hits, semantic } = await searchMessages(env, text, filter, int(args.limit, 20, 1, 50));
+        return { messages: hits.map((h) => ({ ...message(h, origin), score: Number(h.score.toFixed(3)) })), semantic };
+      }
+      const page = await listMessages(env.DB, {
+        ...filter,
         before: typeof args.before_id === "number" ? args.before_id : undefined,
         limit: int(args.limit, 20, 1, 50),
       });

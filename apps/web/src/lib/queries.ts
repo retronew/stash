@@ -3,6 +3,9 @@
 
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import type {
+  AnalysisSettings,
+  AnalysisStats,
+  SearchHit,
   Account,
   AttachmentKind,
   AttachmentStatus,
@@ -21,6 +24,7 @@ import type {
   WebhookEventDetail,
 } from "@stash/shared";
 import { api } from "#lib/api";
+import type { Locale } from "#lib/i18n";
 
 type Param = string | number | boolean | readonly string[] | undefined | null;
 
@@ -51,6 +55,7 @@ export interface MessageFilters {
   accounts: string[];
   chatTypes: ChatType[];
   chatIds: string[];
+  categories: string[];
   /** all, only messages with files, or only those with a failed download. */
   media: "all" | "media" | "failed";
   period: Period;
@@ -87,6 +92,7 @@ export const messagesQuery = (filters: MessageFilters) =>
           account: filters.accounts,
           chat: filters.chatTypes,
           chatid: filters.chatIds,
+          category: filters.categories,
           media: filters.media === "media" ? true : undefined,
           status: filters.media === "failed" ? "failed" : undefined,
           before: pageParam,
@@ -238,4 +244,45 @@ export const exportSummaryQuery = (o: {
           kind: o.kinds,
         }),
       ),
+  });
+
+export const localePrefsQuery = queryOptions({
+  queryKey: ["locale-prefs"],
+  queryFn: () => api<{ locale?: string | null; aiLanguage: Locale | "auto" }>("/api/settings/locale"),
+});
+
+export const analysisSettingsQuery = queryOptions({
+  queryKey: ["analysis", "settings"],
+  queryFn: () => api<AnalysisSettings>("/api/analysis/settings"),
+});
+
+export const analysisStatsQuery = queryOptions({
+  queryKey: ["analysis", "stats"],
+  queryFn: () => api<AnalysisStats & { configured: boolean }>("/api/analysis/stats"),
+});
+
+/** Categories in use on messages, with counts. */
+export const categoriesQuery = queryOptions({
+  queryKey: ["messages", "categories"],
+  queryFn: () => api<{ category: string; count: number }[]>("/api/messages/categories"),
+});
+
+export const searchQuery = (q: string, filters: MessageFilters) =>
+  queryOptions({
+    queryKey: ["messages", "search", q, filters],
+    queryFn: () =>
+      api<{ hits: SearchHit[]; semantic: boolean }>(
+        listUrl("/api/messages/search", {
+          q,
+          platform: filters.platforms,
+          since: periodStart(filters.period),
+          account: filters.accounts,
+          chat: filters.chatTypes,
+          chatid: filters.chatIds,
+          category: filters.categories,
+          media: filters.media === "media" ? true : undefined,
+          status: filters.media === "failed" ? "failed" : undefined,
+        }),
+      ),
+    staleTime: 30_000,
   });

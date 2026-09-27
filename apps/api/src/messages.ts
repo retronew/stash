@@ -1,4 +1,16 @@
-import type { AttachmentStatus, ChatSummary, ChatType, MediaStats, Message, MessagePage, Platform } from "@stash/shared";
+import {
+  emptyFields,
+  FIELD_KEYS,
+  type AnalysisStatus,
+  type AttachmentStatus,
+  type ChatSummary,
+  type ChatType,
+  type MediaStats,
+  type Message,
+  type MessageFields,
+  type MessagePage,
+  type Platform,
+} from "@stash/shared";
 import { toAttachment, type AttachmentRow } from "#media/attachments";
 import { inClause } from "#params";
 
@@ -13,6 +25,23 @@ interface MessageRow {
   text: string;
   sent_at: number;
   received_at: number;
+  category: string;
+  tags: string;
+  summary: string;
+  ocr_text: string;
+  fields: string;
+  ai_status: AnalysisStatus;
+  ai_error: string;
+}
+
+/** Columns of a message for display (everything but the raw payload and vectors). */
+export function messageColumns(alias = "m"): string {
+  return [
+    "id", "account_id", "platform", "chat_type", "chat_id", "sender_id", "sender_name", "text", "sent_at",
+    "received_at", "category", "tags", "summary", "ocr_text", "fields", "ai_status", "ai_error",
+  ]
+    .map((c) => `${alias}.${c}`)
+    .join(", ");
 }
 
 /** Which messages: every field optional, lists match any of their values. */
@@ -22,6 +51,8 @@ export interface MessageQuery {
   chatTypes?: ChatType[];
   /** Specific conversations (chat ids). */
   chatIds?: string[];
+  /** Any of these categories ("" = not categorized). */
+  categories?: string[];
   /** Only messages with at least one attachment. */
   withMedia?: boolean;
   /** Text or sender name contains this (case-insensitive for ASCII). */
@@ -46,6 +77,7 @@ export function messageWhere(q: MessageQuery, params: unknown[]): string[] {
   if (q.accountIds?.length) where.push(inClause("m.account_id", q.accountIds, params));
   if (q.chatTypes?.length) where.push(inClause("m.chat_type", q.chatTypes, params));
   if (q.chatIds?.length) where.push(inClause("m.chat_id", q.chatIds, params));
+  if (q.categories?.length) where.push(inClause("m.category", q.categories, params));
   if (q.query) {
     // "!" escapes LIKE's wildcards, so a search for "50%" means the text "50%".
     where.push("(m.text LIKE ? ESCAPE '!' OR m.sender_name LIKE ? ESCAPE '!')");
@@ -79,8 +111,7 @@ export async function listMessages(db: D1Database, filter: MessageFilter): Promi
     params.push(filter.before);
   }
   where.push(...messageWhere(filter, params));
-  const sql = `SELECT m.id, m.account_id, m.platform, m.chat_type, m.chat_id, m.sender_id, m.sender_name, m.text,
-      m.sent_at, m.received_at
+  const sql = `SELECT ${messageColumns()}
     FROM messages m ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     ORDER BY m.id DESC LIMIT ?`;
   // One extra row tells whether there is a next page.
@@ -115,8 +146,7 @@ async function attachmentsOf(db: D1Database, messageIds: number[]): Promise<Map<
 export async function getMessage(db: D1Database, id: number): Promise<Message | null> {
   const row = await db
     .prepare(
-      `SELECT id, account_id, platform, chat_type, chat_id, sender_id, sender_name, text, sent_at, received_at
-       FROM messages WHERE id = ?`,
+      `SELECT ${messageColumns()} FROM messages m WHERE m.id = ?`,
     )
     .bind(id)
     .first<MessageRow>();
@@ -137,7 +167,74 @@ function toMessage(row: MessageRow, attachments: AttachmentRow[]): Message {
     sentAt: row.sent_at,
     receivedAt: row.received_at,
     attachments: attachments.map(toAttachment),
+    category: row.category,
+    tags: parseTags(row.tags),
+    summary: row.summary,
+    ocrText: row.ocr_text,
+    fields: parseFields(row.fields),
+    aiStatus: row.ai_status,
+    aiError: row.ai_error,
   };
+}
+
+export function parseTags(json: string): string[] {
+  try {
+    const list: unknown = JSON.parse(json || "[]");
+    return Array.isArray(list) ? list.filter((t): t is string => typeof t === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export function parseFields(json: string): MessageFields {
+  const out = emptyFields();
+  try {
+    const raw = JSON.parse(json || "{}") as Record<string, unknown>;
+    for (const key of FIELD_KEYS) {
+      const list = raw[key];
+      if (Array.isArray(list)) out[key] = list.filter((v): v is string => typeof v === "string");
+    }
+  } catch {
+    // Corrupt: no fields.
+  }
+  return out;
+}
+
+/** Messages by id, in the order given (missing ids are skipped). */
+export async function messagesByIds(db: D1Database, ids: number[]): Promise<Message[]> {
+  if (ids.length === 0) return [];
+  const { results } = await db
+    .prepare(`SELECT ${messageColumns()} FROM messages m WHERE m.id IN (${ids.map(() => "?").join(",")})`)
+    .bind(...ids)
+    .all<MessageRow>();
+  const attachments = await attachmentsOf(db, ids);
+  const byId = new Map(results.map((r) => [r.id, toMessage(r, attachments.get(r.id) ?? [])]));
+  return ids.flatMap((id) => byId.get(id) ?? []);
+}
+
+/** Sets category and / or tags by hand. */
+export async function updateMessageLabels(db: D1Database, id: number, labels: { category?: string; tags?: string[] }) {
+  const sets: string[] = [];
+  const params: unknown[] = [];
+  if (labels.category !== undefined) {
+    sets.push("category = ?");
+    params.push(labels.category.trim().slice(0, 50));
+  }
+  if (labels.tags !== undefined) {
+    sets.push("tags = ?");
+    params.push(JSON.stringify([...new Set(labels.tags.map((t) => t.trim()).filter(Boolean))].slice(0, 10)));
+  }
+  if (!sets.length) return false;
+  const res = await db.prepare(`UPDATE messages SET ${sets.join(", ")} WHERE id = ?`).bind(...params, id).run();
+  return res.meta.changes > 0;
+}
+
+/** Categories in use, with counts, most used first. */
+export async function categoryCounts(db: D1Database): Promise<{ category: string; count: number }[]> {
+  const { results } = await db
+    .prepare("SELECT category, COUNT(*) AS count FROM messages WHERE category != '' GROUP BY category ORDER BY count DESC")
+    .all<{ category: string; count: number }>();
+  return results;
 }
 
 /** Deletes a message, its attachment rows and their files in R2. False if it didn't exist. */

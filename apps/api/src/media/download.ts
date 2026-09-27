@@ -9,6 +9,10 @@ import { extensionFor, mediaKey } from "#media/keys";
 
 /** Longest a single download may take before it counts as failed (and is retried). */
 const TIMEOUT_MS = 12 * 60_000;
+/** No response headers within this: the server is stuck, try again later. */
+const HEADERS_TIMEOUT_MS = 30_000;
+/** No bytes for this long mid-transfer: the connection stalled. */
+const STALL_TIMEOUT_MS = 60_000;
 /** Multipart part size (R2 needs >= 5 MB for every part but the last). */
 const PART_SIZE = 10 * 1024 * 1024;
 /** R2's single-PUT limit is 5 GiB; anything larger goes multipart. */
@@ -25,18 +29,67 @@ function describe(err: unknown): string {
   return String(err);
 }
 
+/**
+ * One abort signal for a download with three limits: no headers in time,
+ * the whole transfer taking too long, and (via `touch`) no bytes for a while.
+ * Without these a hung server would hold a queue consumer for the full 12 minutes.
+ */
+function watchdog() {
+  const controller = new AbortController();
+  const fail = (message: string) => controller.abort(new Error(message));
+  const total = setTimeout(() => fail("download timed out"), TIMEOUT_MS);
+  let stall = setTimeout(() => fail(`no response within ${HEADERS_TIMEOUT_MS / 1000}s`), HEADERS_TIMEOUT_MS);
+  const touch = () => {
+    clearTimeout(stall);
+    stall = setTimeout(() => fail(`stalled: no data for ${STALL_TIMEOUT_MS / 1000}s`), STALL_TIMEOUT_MS);
+  };
+  const done = () => {
+    clearTimeout(total);
+    clearTimeout(stall);
+  };
+  return { signal: controller.signal, touch, done };
+}
+
+/** Passes bytes through, resetting the stall timer on each chunk. */
+function watched(body: ReadableStream<Uint8Array>, touch: () => void): ReadableStream<Uint8Array> {
+  return body.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, ctl) {
+        touch();
+        ctl.enqueue(chunk);
+      },
+    }),
+  );
+}
+
 export async function downloadToR2(bucket: R2Bucket, target: DownloadTarget): Promise<Stored> {
+  const dog = watchdog();
+  try {
+    return await download(bucket, target, dog);
+  } catch (err) {
+    // An abort surfaces as a generic error; report the watchdog's reason instead.
+    if (dog.signal.aborted && !(err instanceof DownloadError)) {
+      throw new DownloadError(describe(dog.signal.reason), true);
+    }
+    throw err;
+  } finally {
+    dog.done();
+  }
+}
+
+async function download(bucket: R2Bucket, target: DownloadTarget, dog: ReturnType<typeof watchdog>): Promise<Stored> {
   let res: Response;
   try {
     res = await fetch(target.source_url, {
       // A length we can trust: compressed responses are decoded by fetch and
       // no longer match Content-Length.
       headers: { "Accept-Encoding": "identity", "User-Agent": "Mozilla/5.0 (compatible; Stash)" },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: dog.signal,
     });
   } catch (err) {
-    throw new DownloadError(`network error: ${describe(err)}`, true);
+    throw new DownloadError(`network error: ${describe(dog.signal.aborted ? dog.signal.reason : err)}`, true);
   }
+  dog.touch();
   if (!res.ok || !res.body) {
     await res.body?.cancel();
     throw new DownloadError(`HTTP ${res.status}`, isRetryableStatus(res.status));
@@ -65,10 +118,11 @@ export async function downloadToR2(bucket: R2Bucket, target: DownloadTarget): Pr
   try {
     size =
       knownLength && length <= SINGLE_PUT_MAX
-        ? await putStream(bucket, key, res.body, length, options)
-        : await putMultipart(bucket, key, res.body, options);
+        ? await putStream(bucket, key, watched(res.body, dog.touch), length, options)
+        : await putMultipart(bucket, key, watched(res.body, dog.touch), options);
   } catch (err) {
-    throw err instanceof DownloadError ? err : new DownloadError(`transfer failed: ${describe(err)}`, true);
+    const reason = dog.signal.aborted ? dog.signal.reason : err;
+    throw err instanceof DownloadError ? err : new DownloadError(`transfer failed: ${describe(reason)}`, true);
   }
 
   if (size === 0 || (knownLength && size !== length)) {

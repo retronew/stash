@@ -21,6 +21,13 @@ export const LOCALE_NAMES: Record<Locale, string> = {
   ja: "日本語",
 };
 
+/** How AI prompts name the output language. */
+export const AI_LANGUAGE: Record<Locale, string> = {
+  zh: "简体中文",
+  en: "English",
+  ja: "日本語",
+};
+
 /** BCP 47 tags for Intl (dates, numbers). */
 export const INTL_LOCALE: Record<Locale, string> = {
   zh: "zh-CN",

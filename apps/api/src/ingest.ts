@@ -2,6 +2,7 @@ import type { Env } from "#types";
 import type { BotAccountRow } from "#accounts";
 import type { IncomingMessage } from "#platforms/types";
 import { enqueueDownloads } from "#media/jobs";
+import { analyzeWhenReady } from "#analysis/queue";
 
 export interface Ingested {
   messageId: number;
@@ -44,7 +45,11 @@ export async function ingestMessages(env: Env, account: BotAccountRow, messages:
       .first<{ id: number }>();
     out.push({ messageId: row!.id, created: inserted.meta.changes > 0 });
 
-    if (msg.attachments.length === 0) continue;
+    if (msg.attachments.length === 0) {
+      // Text only: nothing to wait for.
+      if (inserted.meta.changes > 0) await analyzeWhenReady(env, row!.id);
+      continue;
+    }
     const { results } = await env.DB.prepare(`SELECT id FROM attachments WHERE message_id = ? AND status = 'pending'`)
       .bind(row!.id)
       .all<{ id: number }>();

@@ -1,5 +1,7 @@
 // Types shared by the web app and the API.
 
+export * from "./ai/index";
+
 /** Chat platforms Stash can receive from. */
 export const PLATFORMS = ["qq"] as const;
 export type Platform = (typeof PLATFORMS)[number];
@@ -59,6 +61,32 @@ export interface Attachment {
   storedAt: number | null;
 }
 
+/**
+ * AI analysis of a message: "" never analyzed, pending (queued), running,
+ * done, failed (gave up; can be retried), skipped (nothing to analyze).
+ */
+export const ANALYSIS_STATUSES = ["", "pending", "running", "done", "failed", "skipped"] as const;
+export type AnalysisStatus = (typeof ANALYSIS_STATUSES)[number];
+
+/** Key facts pulled out of the text and images. Every list may be empty. */
+export interface MessageFields {
+  amounts: string[];
+  dates: string[];
+  phones: string[];
+  emails: string[];
+  urls: string[];
+  addresses: string[];
+  /** Order, tracking, invoice, flight… numbers. */
+  codes: string[];
+  people: string[];
+}
+
+export const FIELD_KEYS = ["amounts", "dates", "phones", "emails", "urls", "addresses", "codes", "people"] as const satisfies readonly (keyof MessageFields)[];
+
+export function emptyFields(): MessageFields {
+  return { amounts: [], dates: [], phones: [], emails: [], urls: [], addresses: [], codes: [], people: [] };
+}
+
 export interface Message {
   id: number;
   accountId: string;
@@ -71,7 +99,50 @@ export interface Message {
   sentAt: number;
   receivedAt: number;
   attachments: Attachment[];
+  /** Set by AI analysis, or by hand. */
+  category: string;
+  tags: string[];
+  /** One sentence about the message and its images. */
+  summary: string;
+  /** Text read from the images. */
+  ocrText: string;
+  fields: MessageFields;
+  aiStatus: AnalysisStatus;
+  aiError: string;
 }
+
+/** A search result: a message and how well it matched (higher is better). */
+export interface SearchHit extends Message {
+  score: number;
+}
+
+/** How far AI analysis has got, for the settings page. */
+export interface AnalysisStats {
+  total: number;
+  done: number;
+  pending: number;
+  failed: number;
+  notAnalyzed: number;
+  /** Analyses run today (UTC) and the daily cap. */
+  today: number;
+  dailyLimit: number;
+  /** Messages with a vector for semantic search. */
+  embedded: number;
+}
+
+/** What analysis does and how much it may spend. */
+export interface AnalysisSettings {
+  /** Analyze new messages once their files are saved. */
+  auto: boolean;
+  /** At most this many analyses a day (UTC); 0 = no limit. */
+  dailyLimit: number;
+  /** Categories the model picks from (it may add one when none fits). */
+  categories: string[];
+  /** Images sent per message, and the largest image sent. */
+  maxImages: number;
+}
+
+export const DEFAULT_CATEGORIES = ["工作", "生活", "学习", "购物", "票据", "出行", "截图", "其他"];
 
 export interface MessagePage {
   messages: Message[];

@@ -1,10 +1,13 @@
 import type { Env } from "#types";
-import type { MediaJob } from "#media/jobs";
+import { isAnalyzeJob, type MediaJob } from "#media/jobs";
+import { processAnalyzeJob } from "#analysis/consumer";
+import { analyzeWhenReady } from "#analysis/queue";
 import { claim, markFailed, markRetrying, markStored, type DownloadTarget } from "#media/attachments";
 import { downloadToR2 } from "#media/download";
 import { DownloadError, nextDelaySeconds } from "#media/retry";
 
-// Queue consumer: one attachment per message (max_batch_size 1 in wrangler.jsonc).
+// Queue consumer: one job per invocation (max_batch_size 1 in wrangler.jsonc).
+// Analysis jobs go to analysis/consumer.ts; downloads are handled here.
 //
 //   pending -> (claim) -> downloading -> stored
 //      ^                      |
@@ -28,8 +31,12 @@ export async function queue(batch: MessageBatch<MediaJob>, env: Env) {
 }
 
 async function processOne(message: Message<MediaJob>, env: Env) {
-  const id = message.body?.attachmentId;
-  if (!Number.isInteger(id)) {
+  if (message.body && isAnalyzeJob(message.body)) {
+    await processAnalyzeJob(message, env, message.body.messageId);
+    return;
+  }
+  const id = message.body && "attachmentId" in message.body ? message.body.attachmentId : undefined;
+  if (id === undefined || !Number.isInteger(id)) {
     message.ack();
     return;
   }
@@ -52,6 +59,7 @@ async function processOne(message: Message<MediaJob>, env: Env) {
     const stored = await downloadToR2(env.MEDIA, target);
     await markStored(env.DB, id, stored);
     message.ack();
+    await analyzeWhenReady(env, target.message_id);
   } catch (err) {
     const error = err instanceof DownloadError ? err : new DownloadError(String(err), true);
     const delay = error.retryable ? nextDelaySeconds(target.attempts) : null;
@@ -60,6 +68,8 @@ async function processOne(message: Message<MediaJob>, env: Env) {
       if (delay === null) {
         await markFailed(env.DB, id, error.message);
         message.ack();
+        // Analyze with whatever else was saved.
+        await analyzeWhenReady(env, target.message_id);
       } else {
         await markRetrying(env.DB, id, error.message, delay);
         message.retry({ delaySeconds: delay });
@@ -75,8 +85,17 @@ async function processOne(message: Message<MediaJob>, env: Env) {
 /** Messages the main queue gave up on (the consumer kept crashing): record them as failed. */
 async function deadLetters(batch: MessageBatch<MediaJob>, env: Env) {
   for (const message of batch.messages) {
-    const id = message.body?.attachmentId;
-    if (Number.isInteger(id)) {
+    const body = message.body;
+    if (body && isAnalyzeJob(body)) {
+      await env.DB.prepare("UPDATE messages SET ai_status = 'failed', ai_error = ? WHERE id = ? AND ai_status != 'done'")
+        .bind("gave up after repeated consumer errors", body.messageId)
+        .run()
+        .catch((err) => console.error("dead letter not recorded", body.messageId, err));
+      message.ack();
+      continue;
+    }
+    const id = body && "attachmentId" in body ? body.attachmentId : undefined;
+    if (id !== undefined && Number.isInteger(id)) {
       try {
         await markFailed(env.DB, id, "gave up after repeated consumer errors");
       } catch (err) {

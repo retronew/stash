@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Attachment, Message } from "@stash/shared";
+import { emptyFields, type Attachment, type Message } from "@stash/shared";
 import { dateRange, entryPath, extensionOf, planFiles, safeName, splitVolumes, zipName } from "./export-plan";
 
 const att = (over: Partial<Attachment> = {}): Attachment => ({
@@ -30,6 +30,13 @@ const msg = (over: Partial<Message> = {}): Message => ({
   sentAt: new Date(2026, 8, 27, 15, 30, 12).getTime(),
   receivedAt: 0,
   attachments: [att()],
+  category: "",
+  tags: [],
+  summary: "",
+  ocrText: "",
+  fields: emptyFields(),
+  aiStatus: "",
+  aiError: "",
   ...over,
 });
 
