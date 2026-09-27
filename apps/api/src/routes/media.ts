@@ -40,8 +40,11 @@ mediaRoutes.post("/retry", async (c) => {
   return c.json({ queued: reset.length });
 });
 
-/** A small WebP of a stored image for lists; the original when one can't be made. */
-mediaRoutes.get("/:id{[0-9]+}/thumb", async (c) => {
+/**
+ * The 1280px WebP preview of a stored image, for lists; the original when one
+ * can't be made. /thumb is the old address (browsers cached a smaller size there).
+ */
+mediaRoutes.get("/:id{[0-9]+}/:kind{preview|thumb}", async (c) => {
   const id = Number(c.req.param("id"));
   const row = await c.env.DB.prepare("SELECT r2_key, kind, thumb_status FROM attachments WHERE id = ? AND status = 'stored'")
     .bind(id)

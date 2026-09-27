@@ -254,9 +254,9 @@ export interface ExportSummary {
   unsaved: number;
 }
 
-/** A small version of a stored image, for lists (falls back to the original). */
+/** The 1280px preview of a stored image, for lists (falls back to the original). */
 export function thumbnailUrl(id: number): string {
-  return `/api/media/${id}/thumb`;
+  return `/api/media/${id}/preview`;
 }
 
 /** Attachment URL for <img src>, served from R2 by the API. */

@@ -83,14 +83,14 @@ export async function analyzeMessage(env: Env, id: number): Promise<RunOutcome> 
 
   if (provider.chat) {
     const settings = await getAnalysisSettings(env.DB);
-    // The 1280px preview when there is one (any size of original); else the
+    // The 1280px preview (the one lists show) when there is one (any size of original); else the
     // original, if it's a type the models take and small enough.
     const images = files
       .filter((f) => f.status === "stored" && f.r2_key && f.kind === "image")
       .slice(0, settings.maxImages);
     const parts = await Promise.all(
       images.map(async (f) => {
-        const preview = await env.MEDIA.get(thumbKey(f.id, "preview"));
+        const preview = await env.MEDIA.get(thumbKey(f.id));
         if (preview) return { type: "image" as const, image: new Uint8Array(await preview.arrayBuffer()), mediaType: "image/webp" };
         if (!IMAGE_TYPES.has(f.content_type) || (f.stored_size ?? 0) > MAX_IMAGE_BYTES) return null;
         const object = await env.MEDIA.get(f.r2_key!);

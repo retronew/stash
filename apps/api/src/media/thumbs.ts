@@ -1,9 +1,8 @@
 import type { Env } from "#types";
 
-// Smaller copies of each stored image, made once and kept in R2:
-//   thumbs/<id>.webp    480px, for lists
-//   previews/<id>.webp  1280px, sent to the AI model instead of the original
-// Made with the Images binding (free plan: 5,000 unique transformations a
+// One medium-sized copy of each stored image (previews/<id>.webp, 1280px),
+// made once and kept in R2: lists show it, and the AI model gets it instead
+// of the original. Made with the Images binding (free plan: 5,000 unique transformations a
 // month); when that fails (it drops very large originals), with the free
 // wsrv.nl service, which fetches the original through a short-lived signed
 // link (media/signed-url.ts). Made by the queue right after a download (and
@@ -13,12 +12,8 @@ import type { Env } from "#types";
 
 import { signedMediaUrl } from "#media/signed-url";
 
-const SIZES = {
-  thumb: { prefix: "thumbs", size: 480, quality: 75 },
-  preview: { prefix: "previews", size: 1280, quality: 80 },
-} as const;
-export type ThumbSize = keyof typeof SIZES;
-type Spec = (typeof SIZES)[ThumbSize];
+const SPEC = { size: 1280, quality: 80 };
+type Spec = typeof SPEC;
 
 /** The Images binding takes inputs up to 70 MB. */
 const MAX_IMAGES_BYTES = 70 * 1024 * 1024;
@@ -27,12 +22,10 @@ const MAX_WSRV_BYTES = 100 * 1024 * 1024;
 const WSRV = "https://wsrv.nl/";
 const WSRV_TIMEOUT_MS = 90_000;
 
-export const thumbKey = (attachmentId: number, size: ThumbSize = "thumb") =>
-  `${SIZES[size].prefix}/${attachmentId}.webp`;
+export const thumbKey = (attachmentId: number) => `previews/${attachmentId}.webp`;
 
-/** Every derived key of an image, for deleting it with the original. */
-export const derivedKeys = (attachmentId: number) =>
-  (Object.keys(SIZES) as ThumbSize[]).map((size) => thumbKey(attachmentId, size));
+/** Every derived key of an image, for deleting it with the original (thumbs/ held a small size once). */
+export const derivedKeys = (attachmentId: number) => [thumbKey(attachmentId), `thumbs/${attachmentId}.webp`];
 
 export type ThumbStatus = "" | "done" | "failed" | "skipped";
 
@@ -74,16 +67,14 @@ function withWsrv(sourceUrl: string): Maker {
 }
 
 async function makeAll(env: Env, attachmentId: number, make: Maker) {
-  for (const size of Object.keys(SIZES) as ThumbSize[]) {
-    const out = await make(SIZES[size]);
-    await env.MEDIA.put(thumbKey(attachmentId, size), out, { httpMetadata: { contentType: "image/webp" } });
-  }
+  const out = await make(SPEC);
+  await env.MEDIA.put(thumbKey(attachmentId), out, { httpMetadata: { contentType: "image/webp" } });
 }
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /**
- * Makes both sizes from the original and records the outcome. Never throws:
+ * Makes the preview from the original and records the outcome. Never throws:
  * a failure leaves lists and analysis on the original.
  */
 export async function makeThumbs(env: Env, attachmentId: number, r2Key: string): Promise<ThumbStatus> {
