@@ -67,23 +67,22 @@ const TABS: SettingsTab[] = [
     icon: DatabaseIcon,
     description: m.settings_tab_data_description(),
     content: (
-      <div className="space-y-6">
-        <CardColumns left={<ExportCard />} right={<BackupsCard />} />
-        <CardColumns
-          left={
-            <>
-              <RetentionCard target="events" title={m.data_events_title()} description={m.data_events_description()} />
-              <RetentionCard target="tasks" title={m.data_tasks_title()} description={m.data_tasks_description()} />
-            </>
-          }
-          right={
-            <>
-              <RetentionCard target="trash" title={m.data_trash_title()} description={m.data_trash_description()} />
-              <RetentionCard target="audit" title={m.data_audit_title()} description={m.data_audit_description()} />
-            </>
-          }
-        />
-      </div>
+      <CardColumns
+        left={
+          <>
+            <ExportCard />
+            <RetentionCard target="events" title={m.data_events_title()} description={m.data_events_description()} />
+            <RetentionCard target="tasks" title={m.data_tasks_title()} description={m.data_tasks_description()} />
+          </>
+        }
+        right={
+          <>
+            <BackupsCard />
+            <RetentionCard target="trash" title={m.data_trash_title()} description={m.data_trash_description()} />
+            <RetentionCard target="audit" title={m.data_audit_title()} description={m.data_audit_description()} />
+          </>
+        }
+      />
     ),
   },
   {
