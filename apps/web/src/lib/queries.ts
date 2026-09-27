@@ -269,6 +269,11 @@ export const analysisStatsQuery = queryOptions({
 });
 
 /** Categories in use on messages, with counts. */
+export const tagsQuery = queryOptions({
+  queryKey: ["messages", "tags"],
+  queryFn: () => api<{ tag: string; count: number }[]>("/api/messages/tags"),
+});
+
 export const categoriesQuery = queryOptions({
   queryKey: ["messages", "categories"],
   queryFn: () => api<{ category: string; count: number }[]>("/api/messages/categories"),

@@ -31,6 +31,7 @@ interface Props {
   accounts: Account[];
   chats: ChatSummary[];
   categories: CategoryOption[];
+  tags: { tag: string; count: number }[];
   /** Packs the files these filters match. */
   onExport: () => void;
   selectMode: boolean;
@@ -38,7 +39,7 @@ interface Props {
 }
 
 /** Time and files (one of); platform, bot and chat type (any of); the export button; the active filters as chips. */
-export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats, categories, onExport, selectMode, onToggleSelectMode }: Props) {
+export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats, categories, tags, onExport, selectMode, onToggleSelectMode }: Props) {
   const [expanded, setExpanded] = useState(false);
   const media: { value: MessageFilters["media"]; label: string }[] = [
     { value: "all", label: m.filter_media_all() },
@@ -59,6 +60,8 @@ export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats,
   const setChatIds = (chatIds: string[]) => onChange({ chatIds });
   const categoryOptions = categories.map((c) => ({ value: c.category, label: c.category, count: c.count }));
   const setCategories = (v: string[]) => onChange({ categories: v });
+  const tagOptions = tags.map((t) => ({ value: t.tag, label: `#${t.tag}`, count: t.count }));
+  const setTags = (v: string[]) => onChange({ tags: v });
   const setPlatforms = (v: string[]) => onChange({ platforms: v as Platform[] });
   const setBots = (accounts: string[]) => onChange({ accounts });
   const setChats = (v: string[]) => onChange({ chatTypes: v as ChatType[] });
@@ -71,7 +74,7 @@ export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats,
       ? []
       : [{ key: "media", label: optionLabel(media, filters.media), onRemove: () => onChange({ media: "all" }) }]),
     ...chipsFor("category", filters.categories, (v) => v, setCategories),
-    ...chipsFor("tag", filters.tags, (v) => `#${v}`, (tags) => onChange({ tags })),
+    ...chipsFor("tag", filters.tags, (v) => `#${v}`, setTags),
     ...chipsFor("platform", filters.platforms, (v) => optionLabel(platforms, v), setPlatforms),
     ...chipsFor("bot", filters.accounts, (v) => optionLabel(bots, v), setBots),
     ...chipsFor("chat", filters.chatTypes, (v) => chatTypeLabel(v as ChatType), setChats),
@@ -83,6 +86,7 @@ export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats,
       <SingleSelectFilter label={m.filter_period()} options={periods} value={filters.period} onChange={(period) => onChange({ period })} />
       <SingleSelectFilter label={m.filter_media()} options={media} value={filters.media} onChange={(v) => onChange({ media: v })} />
       <MultiSelectFilter label={m.filter_category()} options={categoryOptions} selected={filters.categories} onChange={setCategories} />
+      <MultiSelectFilter label={m.filter_tag()} options={tagOptions} selected={filters.tags} onChange={setTags} />
       <MultiSelectFilter label={m.filter_platform()} options={platforms} selected={filters.platforms} onChange={setPlatforms} />
       <MultiSelectFilter label={m.filter_bot()} options={bots} selected={filters.accounts} onChange={setBots} />
       <MultiSelectFilter label={m.filter_chat_type()} options={chatTypes} selected={filters.chatTypes} onChange={setChats} />

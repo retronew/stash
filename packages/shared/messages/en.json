@@ -492,6 +492,7 @@
   "field_urls": "Links",
   "filter_active": "Filters",
   "filter_bot": "Bots",
+  "filter_tag": "Tag",
   "filter_category": "Categories",
   "filter_chat": "Conversations",
   "filter_chat_type": "Chat types",

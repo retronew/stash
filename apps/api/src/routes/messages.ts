@@ -4,6 +4,7 @@ import { messageQueryParams } from "#message-params";
 import type { Env } from "#types";
 import {
   categoryCounts,
+  tagCounts,
   editTags,
   setCategory,
   getMessage,
@@ -46,6 +47,9 @@ messageRoutes.get("/search", async (c) => {
 
 /** Categories in use, with counts, for the category filter. */
 messageRoutes.get("/categories", async (c) => c.json(await categoryCounts(c.env.DB)));
+
+/** Tags in use, with counts, for the tag filter. */
+messageRoutes.get("/tags", async (c) => c.json(await tagCounts(c.env.DB)));
 
 /** body: { category?: string, tags?: string[] } — set by hand. */
 messageRoutes.patch("/:id{[0-9]+}", async (c) => {

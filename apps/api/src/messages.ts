@@ -287,6 +287,16 @@ export async function categoryCounts(db: D1Database): Promise<{ category: string
   return results;
 }
 
+/** Tags in use, with counts, most used first. */
+export async function tagCounts(db: D1Database): Promise<{ tag: string; count: number }[]> {
+  const { results } = await db
+    .prepare(
+      "SELECT t.value AS tag, COUNT(*) AS count FROM messages m, json_each(m.tags) t WHERE m.deleted_at IS NULL GROUP BY t.value ORDER BY count DESC LIMIT 200",
+    )
+    .all<{ tag: string; count: number }>();
+  return results;
+}
+
 /** Moves messages to the recycle bin; returns how many were live. */
 export async function trashMessages(db: D1Database, ids: number[]): Promise<number> {
   const now = Date.now();

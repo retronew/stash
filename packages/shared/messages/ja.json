@@ -492,6 +492,7 @@
   "field_urls": "リンク",
   "filter_active": "絞り込み中",
   "filter_bot": "ボット",
+  "filter_tag": "タグ",
   "filter_category": "分類",
   "filter_chat": "会話",
   "filter_chat_type": "チャットの種類",

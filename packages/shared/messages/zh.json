@@ -492,6 +492,7 @@
   "field_urls": "链接",
   "filter_active": "当前筛选",
   "filter_bot": "机器人",
+  "filter_tag": "标签",
   "filter_category": "分类",
   "filter_chat": "会话",
   "filter_chat_type": "会话类型",
