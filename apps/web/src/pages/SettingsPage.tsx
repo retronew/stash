@@ -12,6 +12,7 @@ import { RetentionCard } from "#components/settings/retention/RetentionCard";
 import { ExportCard } from "#components/settings/retention/ExportCard";
 import { AllowedEmailsCard } from "#components/settings/AllowedEmailsCard";
 import { BuildInfo } from "#components/settings/BuildInfo";
+import { CardColumns } from "#components/settings/CardColumns";
 import { SettingsTabHeader } from "#components/settings/SettingsTabHeader";
 import { Confirm } from "#components/Confirm";
 import { ScrollFade } from "#components/ScrollFade";
@@ -40,12 +41,18 @@ const TABS: SettingsTab[] = [
     icon: SparklesIcon,
     description: m.settings_tab_ai_description(),
     content: (
-      <>
+      <div className="space-y-6">
         <AiSettingsCard />
-        <AnalysisSettingsCard />
-        <AnalysisStatusCard />
-        <AiLanguageCard />
-      </>
+        <CardColumns
+          left={<AnalysisSettingsCard />}
+          right={
+            <>
+              <AnalysisStatusCard />
+              <AiLanguageCard />
+            </>
+          }
+        />
+      </div>
     ),
   },
   {
@@ -54,11 +61,15 @@ const TABS: SettingsTab[] = [
     icon: DatabaseIcon,
     description: m.settings_tab_data_description(),
     content: (
-      <>
-        <ExportCard />
-        <RetentionCard target="events" title={m.data_events_title()} description={m.data_events_description()} />
-        <RetentionCard target="tasks" title={m.data_tasks_title()} description={m.data_tasks_description()} />
-      </>
+      <CardColumns
+        left={<ExportCard />}
+        right={
+          <>
+            <RetentionCard target="events" title={m.data_events_title()} description={m.data_events_description()} />
+            <RetentionCard target="tasks" title={m.data_tasks_title()} description={m.data_tasks_description()} />
+          </>
+        }
+      />
     ),
   },
   {
@@ -67,11 +78,15 @@ const TABS: SettingsTab[] = [
     icon: ShieldCheckIcon,
     description: m.settings_tab_access_description(),
     content: (
-      <>
-        <AllowedEmailsCard />
-        <ApiTokenCard />
-        <McpCard />
-      </>
+      <CardColumns
+        left={
+          <>
+            <AllowedEmailsCard />
+            <ApiTokenCard />
+          </>
+        }
+        right={<McpCard />}
+      />
     ),
   },
 ];
@@ -102,7 +117,7 @@ export function SettingsPage() {
           </TabsList>
         </ScrollFade>
         {TABS.map((t) => (
-          <TabsPanel key={t.id} value={t.id} className="max-w-2xl space-y-4">
+          <TabsPanel key={t.id} value={t.id} className="space-y-4">
             <SettingsTabHeader description={t.description} />
             {t.content}
           </TabsPanel>
