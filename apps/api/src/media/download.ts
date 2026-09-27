@@ -63,6 +63,9 @@ function watched(body: ReadableStream<Uint8Array>, touch: () => void): ReadableS
 }
 
 export async function downloadToR2(bucket: R2Bucket, target: DownloadTarget): Promise<Stored> {
+  // Saved by an earlier attempt whose result never reached D1: don't fetch it again.
+  const saved = await alreadyStored(bucket, target);
+  if (saved) return saved;
   const dog = watchdog();
   try {
     return await download(bucket, target, dog);
@@ -187,4 +190,21 @@ async function putMultipart(
     await upload.abort().catch(() => {});
     throw err;
   }
+}
+
+/**
+ * The file an earlier attempt already wrote (the key ends in the attachment id;
+ * only the extension may differ). Incomplete writes are deleted or never
+ * become visible, so an object here is whole.
+ */
+async function alreadyStored(bucket: R2Bucket, target: DownloadTarget): Promise<Stored | null> {
+  const prefix = mediaKey(target.platform, target.id, target.received_at, "");
+  const { objects } = await bucket.list({ prefix, limit: 1, include: ["httpMetadata"] });
+  const object = objects[0];
+  if (!object || object.size === 0) return null;
+  return {
+    key: object.key,
+    size: object.size,
+    contentType: object.httpMetadata?.contentType || target.content_type || "application/octet-stream",
+  };
 }
