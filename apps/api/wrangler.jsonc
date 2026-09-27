@@ -16,16 +16,19 @@
 	// and for the webhook URLs shown on the settings page.
 	// Secrets: BETTER_AUTH_SECRET, ALLOWED_EMAILS, GOOGLE_CLIENT_ID/SECRET, GITHUB_CLIENT_ID/SECRET.
 	"vars": {
-		"BETTER_AUTH_URL": "https://stash.example.com"
+		"BETTER_AUTH_URL": "https://stash.rika66.com"
 	},
-	// Uncomment and set your domain to serve Stash on it:
-	// "routes": [{ "pattern": "stash.example.com", "custom_domain": true }],
+	"routes": [
+		{
+			"pattern": "stash.rika66.com",
+			"custom_domain": true
+		}
+	],
 	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "stash-db",
-			// `wrangler d1 create stash-db`, then paste the id here.
-			"database_id": "00000000-0000-0000-0000-000000000000",
+			"database_id": "9e838d06-fdd8-43c5-b65c-c049bf6797ab",
 			"migrations_dir": "migrations"
 		}
 	],
