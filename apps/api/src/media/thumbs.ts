@@ -38,18 +38,18 @@ export async function makeThumbs(env: Env, attachmentId: number, r2Key: string):
     error = "no Images binding";
   } else {
     try {
-      const source = await env.MEDIA.get(r2Key);
-      if (!source) throw new Error("original missing in R2");
-      if (source.size > MAX_SOURCE_BYTES) {
-        await source.body.cancel();
+      const head = await env.MEDIA.head(r2Key);
+      if (!head) throw new Error("original missing in R2");
+      if (head.size > MAX_SOURCE_BYTES) {
         status = "skipped";
-        error = `original too large (${source.size} bytes)`;
+        error = `original too large (${head.size} bytes)`;
       } else {
-        // Read once, transform twice.
-        const bytes = await source.arrayBuffer();
         for (const size of Object.keys(SIZES) as ThumbSize[]) {
           const spec = SIZES[size];
-          const result = await env.IMAGES.input(new Blob([bytes]).stream())
+          // Streamed from R2 each time: buffering a large original first loses the connection to Images.
+          const source = await env.MEDIA.get(r2Key);
+          if (!source) throw new Error("original missing in R2");
+          const result = await env.IMAGES.input(source.body)
             .transform({ width: spec.size, height: spec.size, fit: "scale-down" })
             .output({ format: "image/webp", quality: spec.quality });
           const out = await new Response(result.image()).arrayBuffer();
