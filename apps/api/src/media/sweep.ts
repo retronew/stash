@@ -3,26 +3,30 @@ import { enqueueDownloads, enqueueJobs } from "#media/jobs";
 import { MAX_ATTEMPTS } from "#media/retry";
 import { imagesWithoutThumbs } from "#media/thumbs";
 
-// Safety net, run by the cron trigger. Queues deliver at least once, but two
-// things can still strand an attachment: the enqueue after ingest failed, or
-// a consumer died mid-download (the row is stuck in "downloading").
+// Safety nets, run by the scheduled tasks (cron-tasks.ts). Queues deliver at
+// least once, but two things can still strand work: the enqueue after ingest
+// failed, or a consumer died mid-job (the row is stuck in "downloading" /
+// "running"). Each returns how many it queued again.
 
-/** A consumer runs at most 15 minutes; a download older than this died with it. */
+/** A consumer runs at most 15 minutes; a job older than this died with it. */
 const STUCK_MS = 20 * 60_000;
 /** How long a pending row may sit (past its retry time) before we assume its queue message is lost. */
 const LOST_MS = 15 * 60_000;
-const BATCH = 200;
+/** Per run; D1 binds at most 100 values per statement. */
+const BATCH = 90;
 
 /** Older images get thumbnails a few at a time, so the monthly Images quota isn't spent in one go. */
 const THUMB_BACKFILL = 20;
 
 /** Queues thumbnails for stored images that have none yet. */
-export async function sweepThumbs(env: Env) {
+export async function sweepThumbs(env: Env): Promise<number> {
   const ids = await imagesWithoutThumbs(env, THUMB_BACKFILL);
   if (ids.length) await enqueueJobs(env, ids.map((attachmentId) => ({ kind: "thumb" as const, attachmentId })));
+  return ids.length;
 }
 
-export async function sweepMedia(env: Env) {
+/** Interrupted downloads back to pending (or failed after the last attempt), lost ones queued again. */
+export async function sweepDownloads(env: Env): Promise<number> {
   const now = Date.now();
   const stuckBefore = now - STUCK_MS;
   await env.DB.batch([
@@ -41,22 +45,19 @@ export async function sweepMedia(env: Env) {
   )
     .bind(now - LOST_MS, BATCH)
     .all<{ id: number }>();
-  if (results.length === 0) {
-    await sweepAnalysis(env, now);
-    return;
-  }
+  if (results.length === 0) return 0;
   const ids = results.map((r) => r.id);
   // Restart the clock so the next sweep doesn't queue them again right away.
   await env.DB.prepare(`UPDATE attachments SET updated_at = ? WHERE id IN (${ids.map(() => "?").join(",")})`)
     .bind(now, ...ids)
     .run();
   await enqueueDownloads(env, ids);
-  console.log("sweep re-queued", ids.length);
-  await sweepAnalysis(env, now);
+  return ids.length;
 }
 
-/** The same for analyses: interrupted ones back to pending, lost ones queued again. */
-async function sweepAnalysis(env: Env, now: number) {
+/** The same for analyses. */
+export async function sweepAnalysis(env: Env): Promise<number> {
+  const now = Date.now();
   await env.DB.prepare(
     `UPDATE messages SET ai_status = 'pending', ai_error = 'analysis interrupted', ai_updated_at = ?
      WHERE ai_status = 'running' AND ai_updated_at < ?`,
@@ -68,11 +69,11 @@ async function sweepAnalysis(env: Env, now: number) {
   )
     .bind(now - LOST_MS, BATCH)
     .all<{ id: number }>();
-  if (results.length === 0) return;
+  if (results.length === 0) return 0;
   const ids = results.map((r) => r.id);
   await env.DB.prepare(`UPDATE messages SET ai_updated_at = ? WHERE id IN (${ids.map(() => "?").join(",")})`)
     .bind(now, ...ids)
     .run();
   await enqueueJobs(env, ids.map((messageId) => ({ kind: "analyze" as const, messageId })));
-  console.log("sweep re-queued analyses", ids.length);
+  return ids.length;
 }

@@ -92,6 +92,10 @@ export function describe(method: string, path: string, body: Body, name: string 
     if (method === "DELETE") return { action: "backup.delete", target, summary: msg("backup_delete", { name }) };
   }
 
+  if ((m = p.match(/^\/cron\/(\w+)\/run$/))) {
+    return { action: "cron.run", target: `cron:${m[1]}`, summary: msg("cron_run", { task: { key: `cron_task_${m[1]}` } }) };
+  }
+
   if ((m = p.match(/^\/settings\/retention\/(\w+)$/))) {
     return {
       action: "settings.retention",

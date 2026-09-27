@@ -2,6 +2,7 @@
 // pages read through these, and invalidate by the same keys after a write.
 
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
+import type { CronOverview } from "@stash/shared";
 import type { BackupInfo } from "#hooks/useBackups";
 import type { StatsSummary } from "@stash/shared";
 import { tzOffset } from "#lib/stats-data";
@@ -345,4 +346,10 @@ export const statsQuery = queryOptions({
 export const backupsQuery = queryOptions({
   queryKey: ["backups"],
   queryFn: () => api<{ backups: BackupInfo[] }>("/api/backups"),
+});
+
+/** Scheduled tasks with their latest runs. */
+export const cronQuery = queryOptions({
+  queryKey: ["cron"],
+  queryFn: () => api<CronOverview>("/api/cron"),
 });

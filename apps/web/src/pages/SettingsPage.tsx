@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
 import { useSearchParams } from "react-router";
-import { BotIcon, DatabaseIcon, ShieldCheckIcon, SparklesIcon } from "lucide-react";
+import { BotIcon, ClockIcon, DatabaseIcon, ShieldCheckIcon, SparklesIcon } from "lucide-react";
+import { CronTasksCard } from "#components/settings/cron/CronTasksCard";
 import { AccountsCard } from "#components/settings/accounts/AccountsCard";
 import { ApiTokenCard } from "#components/settings/ApiTokenCard";
 import { McpCard } from "#components/settings/McpCard";
@@ -26,6 +27,8 @@ interface SettingsTab {
   label: string;
   icon: ComponentType<{ className?: string }>;
   description: string;
+  /** The content renders the description itself (to put controls beside it). */
+  ownHeader?: boolean;
   content: ReactNode;
 }
 
@@ -100,6 +103,14 @@ const TABS: SettingsTab[] = [
       />
     ),
   },
+  {
+    id: "cron",
+    label: m.settings_tab_cron(),
+    icon: ClockIcon,
+    description: m.settings_tab_cron_description(),
+    ownHeader: true,
+    content: <CronTasksCard description={m.settings_tab_cron_description()} />,
+  },
 ];
 
 export function SettingsPage() {
@@ -129,7 +140,7 @@ export function SettingsPage() {
         </ScrollFade>
         {TABS.map((t) => (
           <TabsPanel key={t.id} value={t.id} className="space-y-4">
-            <SettingsTabHeader description={t.description} />
+            {!t.ownHeader && <SettingsTabHeader description={t.description} />}
             {t.content}
           </TabsPanel>
         ))}

@@ -6,6 +6,7 @@ import { auditMiddleware } from "#audit/index";
 import { auditRoutes } from "#routes/audit";
 import { statsRoutes } from "#routes/stats";
 import { backupRoutes } from "#routes/backups";
+import { cronRoutes } from "#routes/cron";
 import { scheduled } from "#scheduled";
 import { queue } from "#media/consumer";
 import type { MediaJob } from "#media/jobs";
@@ -60,6 +61,7 @@ app.route("/api/settings", settingsRoutes);
 app.route("/api/audit", auditRoutes);
 app.route("/api/stats", statsRoutes);
 app.route("/api/backups", backupRoutes);
+app.route("/api/cron", cronRoutes);
 
 export default {
   fetch: app.fetch,

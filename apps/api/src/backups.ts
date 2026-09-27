@@ -97,11 +97,11 @@ export async function writeBackup(env: Env, kind: BackupKind): Promise<BackupInf
   return { name, size: obj?.size ?? body.length, uploaded: Date.now(), count: messages.length, kind };
 }
 
-/** Today's daily backup, if it isn't there yet (the cron runs every 10 minutes). */
-export async function dailyBackup(env: Env) {
-  if (await env.MEDIA.head(PREFIX + backupName("daily"))) return;
-  await writeBackup(env, "daily");
-  await pruneBackups(env);
+/** Today's daily backup, if it isn't there yet (the cron runs every 10 minutes); null when it is. */
+export async function dailyBackup(env: Env): Promise<(BackupInfo & { removed: number }) | null> {
+  if (await env.MEDIA.head(PREFIX + backupName("daily"))) return null;
+  const made = await writeBackup(env, "daily");
+  return { ...made, removed: await pruneBackups(env) };
 }
 
 export async function listBackups(env: Env): Promise<BackupInfo[]> {

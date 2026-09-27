@@ -126,6 +126,9 @@ export async function prune(db: D1Database, bucket: R2Bucket, target: RetentionT
   return res.meta.changes ?? 0;
 }
 
-export async function pruneAll(db: D1Database, bucket: R2Bucket) {
-  for (const target of RETENTION_TARGETS) await prune(db, bucket, target);
+/** Prunes every kind of record; returns how many were deleted in all. */
+export async function pruneAll(db: D1Database, bucket: R2Bucket): Promise<number> {
+  let deleted = 0;
+  for (const target of RETENTION_TARGETS) deleted += await prune(db, bucket, target);
+  return deleted;
 }

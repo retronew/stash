@@ -20,7 +20,7 @@ export interface AuditPage {
 }
 
 /** Action prefixes (message.trash → message), for the category filter. */
-export const AUDIT_CATEGORIES = ["message", "bot", "analysis", "media", "settings", "backup", "export", "mcp", "auth", "other"] as const;
+export const AUDIT_CATEGORIES = ["message", "bot", "analysis", "media", "settings", "backup", "export", "cron", "system", "mcp", "auth", "other"] as const;
 export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
 
 export const categoryLabel = (c: string) => renderMessage({ key: `audit_category_${c}` });
@@ -46,5 +46,6 @@ export function actorLabel(actor: string): string {
   if (actor === "anonymous") return m.audit_actor_anonymous();
   if (actor === "api-token") return m.audit_actor_api_token();
   if (actor === "dev") return m.audit_actor_dev();
+  if (actor === "system") return m.audit_actor_system();
   return actor;
 }
