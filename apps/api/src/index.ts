@@ -7,6 +7,7 @@ import { auditRoutes } from "#routes/audit";
 import { statsRoutes } from "#routes/stats";
 import { backupRoutes } from "#routes/backups";
 import { cronRoutes } from "#routes/cron";
+import { verifyMediaSignature } from "#media/signed-url";
 import { scheduled } from "#scheduled";
 import { queue } from "#media/consumer";
 import type { MediaJob } from "#media/jobs";
@@ -49,6 +50,21 @@ app.get("/api/me", async (c) => {
 app.get("/api/health", (c) => c.json({ ok: true }));
 // Lets the login page show only the providers that are configured.
 app.get("/api/public/auth-providers", (c) => c.json({ providers: enabledProviders(c.env) }));
+// A stored file behind a short-lived signed link, for wsrv.nl to make thumbnails (media/thumbs.ts).
+app.get("/api/public/media/:id{[0-9]+}", async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!(await verifyMediaSignature(c.env, id, c.req.query("exp"), c.req.query("sig")))) return c.json({ error: "forbidden" }, 403);
+  const row = await c.env.DB.prepare("SELECT r2_key FROM attachments WHERE id = ? AND status = 'stored'")
+    .bind(id)
+    .first<{ r2_key: string }>();
+  const object = row ? await c.env.MEDIA.get(row.r2_key) : null;
+  if (!object) return c.json({ error: "not found" }, 404);
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set("Content-Length", String(object.size));
+  headers.set("Cache-Control", "private, no-store");
+  return new Response(object.body, { headers });
+});
 app.route("/api/webhooks", webhookRoutes);
 app.route("/api/messages", messageRoutes);
 app.route("/api/media", mediaRoutes);
