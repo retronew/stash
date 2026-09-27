@@ -258,7 +258,7 @@ export const analysisSettingsQuery = queryOptions({
 
 export const analysisStatsQuery = queryOptions({
   queryKey: ["analysis", "stats"],
-  queryFn: () => api<AnalysisStats & { configured: boolean }>("/api/analysis/stats"),
+  queryFn: () => api<AnalysisStats & { configured: boolean; embeddingModel: string | null }>("/api/analysis/stats"),
 });
 
 /** Categories in use on messages, with counts. */

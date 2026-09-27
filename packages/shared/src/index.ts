@@ -128,8 +128,9 @@ export interface AnalysisStats {
   /** Analyses run today (UTC) and the daily cap. */
   today: number;
   dailyLimit: number;
-  /** Messages with a vector for semantic search. */
+  /** Messages with a vector from the current embedding model, and how many have anything to embed. */
   embedded: number;
+  embeddable: number;
 }
 
 /** What analysis does and how much it may spend. */

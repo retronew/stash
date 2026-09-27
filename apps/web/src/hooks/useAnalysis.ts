@@ -37,5 +37,16 @@ export function useAnalysis(live = false) {
     }
   }
 
-  return { settings: settings.data ?? null, stats: stats.data ?? null, statsError: stats.error, save, queue };
+  /** Rebuilds vectors with the current embedding model (PickIt's reembed). */
+  async function reembed(mode: "missing" | "all") {
+    try {
+      const { queued } = await api<{ queued: number }>("/api/analysis/reembed", { json: { mode } });
+      toastSuccess(m.reembed_queued({ count: queued }), { id: "reembed" });
+      await refresh();
+    } catch (err) {
+      toastError(m.reembed_failed(), err, { id: "reembed" });
+    }
+  }
+
+  return { reembed, settings: settings.data ?? null, stats: stats.data ?? null, statsError: stats.error, save, queue };
 }

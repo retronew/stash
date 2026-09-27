@@ -3,6 +3,7 @@ import type { AnalysisStats } from "@stash/shared";
 import type { Env } from "#types";
 import { getAiSettings } from "#settings";
 import { getAnalysisSettings, saveAnalysisSettings } from "#analysis/settings";
+import { embedCounts, queueReembed, type ReembedMode } from "#analysis/embed";
 import { queueByScope, requestAnalysis, type QueueScope } from "#analysis/queue";
 
 /** AI analysis settings, progress and queueing, mounted at /api/analysis. */
@@ -20,35 +21,46 @@ analysisRoutes.put("/settings", async (c) => {
 
 analysisRoutes.get("/stats", async (c) => {
   const now = Date.now();
-  const [row, settings, ai] = await Promise.all([
+  const [row, settings, ai, vectors] = await Promise.all([
     c.env.DB.prepare(
       `SELECT COUNT(*) AS total,
          SUM(ai_status IN ('done', 'skipped')) AS done,
          SUM(ai_status IN ('pending', 'running')) AS pending,
          SUM(ai_status = 'failed') AS failed,
          SUM(ai_status = '') AS notAnalyzed,
-         SUM(ai_at >= ?) AS today,
-         SUM(vec IS NOT NULL) AS embedded
+         SUM(ai_at >= ?) AS today
        FROM messages WHERE deleted_at IS NULL`,
     )
       .bind(now - (now % DAY_MS))
       .first<Omit<AnalysisStats, "dailyLimit">>(),
     getAnalysisSettings(c.env.DB),
     getAiSettings(c.env.DB),
+    embedCounts(c.env),
   ]);
   const n = (v: number | null | undefined) => v ?? 0;
-  const stats: AnalysisStats & { configured: boolean } = {
+  const stats: AnalysisStats & { configured: boolean; embeddingModel: string | null } = {
     total: n(row?.total),
     done: n(row?.done),
     pending: n(row?.pending),
     failed: n(row?.failed),
     notAnalyzed: n(row?.notAnalyzed),
     today: n(row?.today),
-    embedded: n(row?.embedded),
+    embedded: vectors.embedded,
+    embeddable: vectors.embeddable,
     dailyLimit: settings.dailyLimit,
     configured: !!ai,
+    embeddingModel: vectors.model,
   };
   return c.json(stats);
+});
+
+/** body: { mode: "missing" | "all" } — rebuild vectors with the current embedding model. */
+analysisRoutes.post("/reembed", async (c) => {
+  const body = await c.req.json<{ mode?: unknown }>().catch(() => ({}) as { mode?: unknown });
+  const mode: ReembedMode = body.mode === "all" ? "all" : "missing";
+  const queued = await queueReembed(c.env, mode);
+  if (queued === null) return c.json({ error: "Set up an embedding model first" }, 400);
+  return c.json({ queued });
 });
 
 /** body: { scope: "unanalyzed" | "failed" | "all" } or { ids: number[] } */

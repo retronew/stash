@@ -41,7 +41,6 @@ export function AnalysisStatusCard() {
             label={m.analysis_today()}
             value={stats ? (stats.dailyLimit ? `${stats.today} / ${stats.dailyLimit}` : String(stats.today)) : undefined}
           />
-          <StatTile compact label={m.analysis_embedded()} value={value(stats?.embedded)} hint={m.analysis_embedded_hint()} />
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" disabled={!stats?.configured || !stats.notAnalyzed} onClick={() => queue("unanalyzed")}>

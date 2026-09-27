@@ -1,5 +1,6 @@
 import type { Env } from "#types";
-import { isAnalyzeJob, type MediaJob } from "#media/jobs";
+import { isAnalyzeJob, isEmbedJob, type MediaJob } from "#media/jobs";
+import { processEmbedJob } from "#analysis/embed";
 import { processAnalyzeJob } from "#analysis/consumer";
 import { analyzeWhenReady } from "#analysis/queue";
 import { claim, markFailed, markRetrying, markStored, type DownloadTarget } from "#media/attachments";
@@ -31,6 +32,10 @@ export async function queue(batch: MessageBatch<MediaJob>, env: Env) {
 }
 
 async function processOne(message: Message<MediaJob>, env: Env) {
+  if (message.body && isEmbedJob(message.body)) {
+    await processEmbedJob(message, env, message.body.ids.filter(Number.isInteger));
+    return;
+  }
   if (message.body && isAnalyzeJob(message.body)) {
     await processAnalyzeJob(message, env, message.body.messageId);
     return;

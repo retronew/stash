@@ -2,9 +2,15 @@ import type { Env } from "#types";
 
 /**
  * One queue message: download an attachment into R2, or analyze a message
- * with AI (see analysis/). Download jobs have no `kind`, as before analysis existed.
+ * with AI, or rebuild vectors (see analysis/). Download jobs have no `kind`, as before analysis existed.
  */
-export type MediaJob = { attachmentId: number } | { kind: "analyze"; messageId: number };
+export type MediaJob =
+  | { attachmentId: number }
+  | { kind: "analyze"; messageId: number }
+  | { kind: "embed"; ids: number[] };
+
+export const isEmbedJob = (job: MediaJob): job is Extract<MediaJob, { kind: "embed" }> =>
+  "kind" in job && job.kind === "embed";
 
 export const isAnalyzeJob = (job: MediaJob): job is Extract<MediaJob, { kind: "analyze" }> =>
   "kind" in job && job.kind === "analyze";

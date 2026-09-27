@@ -7,6 +7,7 @@ import { McpCard } from "#components/settings/McpCard";
 import { AiSettingsCard } from "#components/settings/ai/AiSettingsCard";
 import { AiLanguageCard } from "#components/settings/ai/AiLanguageCard";
 import { AnalysisSettingsCard } from "#components/settings/analysis/AnalysisSettingsCard";
+import { ReembedCard } from "#components/settings/analysis/ReembedCard";
 import { AnalysisStatusCard } from "#components/settings/analysis/AnalysisStatusCard";
 import { RetentionCard } from "#components/settings/retention/RetentionCard";
 import { ExportCard } from "#components/settings/retention/ExportCard";
@@ -48,6 +49,7 @@ const TABS: SettingsTab[] = [
           right={
             <>
               <AnalysisStatusCard />
+              <ReembedCard />
               <AiLanguageCard />
             </>
           }
