@@ -11,10 +11,12 @@ import type {
   EventPage,
   EventStats,
   EventTypeCount,
+  ExportSummary,
   MediaStats,
   MediaTaskDetail,
   MediaTaskPage,
   MessagePage,
+  Platform,
   WebhookEventDetail,
 } from "@stash/shared";
 import { api } from "#lib/api";
@@ -44,10 +46,32 @@ export interface AccountList {
 
 /** Message feed filters; empty lists mean "any". */
 export interface MessageFilters {
+  platforms: Platform[];
   accounts: string[];
   chatTypes: ChatType[];
   /** all, only messages with files, or only those with a failed download. */
   media: "all" | "media" | "failed";
+  period: Period;
+}
+
+/** A time window back from now; resolved when the request is made. */
+export type Period = "all" | "today" | "7d" | "30d" | "year";
+
+/** Start of a period in ms (local midnight), or undefined for "all". */
+export function periodStart(period: Period, now = new Date()): number | undefined {
+  const day = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  switch (period) {
+    case "today":
+      return day;
+    case "7d":
+      return day - 6 * 86_400_000;
+    case "30d":
+      return day - 29 * 86_400_000;
+    case "year":
+      return new Date(now.getFullYear(), 0, 1).getTime();
+    default:
+      return undefined;
+  }
 }
 
 export const messagesQuery = (filters: MessageFilters) =>
@@ -56,6 +80,8 @@ export const messagesQuery = (filters: MessageFilters) =>
     queryFn: ({ pageParam }) =>
       api<MessagePage>(
         listUrl("/api/messages", {
+          platform: filters.platforms,
+          since: periodStart(filters.period),
           account: filters.accounts,
           chat: filters.chatTypes,
           media: filters.media === "media" ? true : undefined,
@@ -179,3 +205,27 @@ export const retentionQuery = queryOptions({
   queryKey: ["settings", "retention"],
   queryFn: () => api<RetentionSettings>("/api/settings/retention"),
 });
+
+/** What an export with these options would contain (files, size, unsaved). */
+export const exportSummaryQuery = (o: {
+  platforms: string[];
+  accounts: string[];
+  chatTypes: string[];
+  since?: number;
+  until?: number;
+  kinds: string[];
+}) =>
+  queryOptions({
+    queryKey: ["export", "summary", o],
+    queryFn: () =>
+      api<ExportSummary>(
+        listUrl("/api/export/summary", {
+          platform: o.platforms,
+          account: o.accounts,
+          chat: o.chatTypes,
+          since: o.since,
+          until: o.until,
+          kind: o.kinds,
+        }),
+      ),
+  });

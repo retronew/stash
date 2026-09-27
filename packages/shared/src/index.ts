@@ -156,6 +156,17 @@ export interface MediaTaskPage {
   nextCursor: number | null;
 }
 
+/** What an export with the current filters would contain. */
+export interface ExportSummary {
+  /** Messages matching the filters (all go into messages.json). */
+  messages: number;
+  /** Saved files of the chosen kinds, and their total size. */
+  files: number;
+  bytes: number;
+  /** Matching files that aren't saved (yet): listed in the report instead. */
+  unsaved: number;
+}
+
 /** Attachment URL for <img src>, served from R2 by the API. */
 export function attachmentUrl(id: number, download = false): string {
   return `/api/media/${id}${download ? "?download=1" : ""}`;

@@ -15,54 +15,67 @@ interface MessageRow {
   received_at: number;
 }
 
-export interface MessageFilter {
-  /** Only messages with a smaller id (the previous page's nextCursor). */
-  before?: number;
-  limit: number;
+/** Which messages: every field optional, lists match any of their values. */
+export interface MessageQuery {
+  platforms?: Platform[];
   accountIds?: string[];
   chatTypes?: ChatType[];
   /** Only messages with at least one attachment. */
   withMedia?: boolean;
   /** Text or sender name contains this (case-insensitive for ASCII). */
   query?: string;
-  /** sent_at range, ms. */
+  /** sent_at range, ms: since inclusive, until exclusive. */
   since?: number;
   until?: number;
   /** Only messages with an attachment in this state. */
   status?: AttachmentStatus;
 }
 
+export interface MessageFilter extends MessageQuery {
+  /** Only messages with a smaller id (the previous page's nextCursor). */
+  before?: number;
+  limit: number;
+}
+
+/** WHERE conditions on `messages m` for a query; pushes their values onto `params`. */
+export function messageWhere(q: MessageQuery, params: unknown[]): string[] {
+  const where: string[] = [];
+  if (q.platforms?.length) where.push(inClause("m.platform", q.platforms, params));
+  if (q.accountIds?.length) where.push(inClause("m.account_id", q.accountIds, params));
+  if (q.chatTypes?.length) where.push(inClause("m.chat_type", q.chatTypes, params));
+  if (q.query) {
+    // "!" escapes LIKE's wildcards, so a search for "50%" means the text "50%".
+    where.push("(m.text LIKE ? ESCAPE '!' OR m.sender_name LIKE ? ESCAPE '!')");
+    const like = `%${q.query.replace(/[!%_]/g, (ch) => `!${ch}`)}%`;
+    params.push(like, like);
+  }
+  if (q.since) {
+    where.push("m.sent_at >= ?");
+    params.push(q.since);
+  }
+  if (q.until) {
+    where.push("m.sent_at < ?");
+    params.push(q.until);
+  }
+  if (q.status) {
+    where.push("EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id AND a.status = ?)");
+    params.push(q.status);
+  } else if (q.withMedia) {
+    where.push("EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id)");
+  }
+  return where;
+}
+
 // Newest first by id (arrival order): a stable cursor even when two
 // messages share a timestamp.
 export async function listMessages(db: D1Database, filter: MessageFilter): Promise<MessagePage> {
-  const where: string[] = [];
   const params: unknown[] = [];
+  const where: string[] = [];
   if (filter.before) {
     where.push("m.id < ?");
     params.push(filter.before);
   }
-  if (filter.accountIds?.length) where.push(inClause("m.account_id", filter.accountIds, params));
-  if (filter.chatTypes?.length) where.push(inClause("m.chat_type", filter.chatTypes, params));
-  if (filter.query) {
-    // "!" escapes LIKE's wildcards, so a search for "50%" means the text "50%".
-    where.push("(m.text LIKE ? ESCAPE '!' OR m.sender_name LIKE ? ESCAPE '!')");
-    const like = `%${filter.query.replace(/[!%_]/g, (ch) => `!${ch}`)}%`;
-    params.push(like, like);
-  }
-  if (filter.since) {
-    where.push("m.sent_at >= ?");
-    params.push(filter.since);
-  }
-  if (filter.until) {
-    where.push("m.sent_at < ?");
-    params.push(filter.until);
-  }
-  if (filter.status) {
-    where.push("EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id AND a.status = ?)");
-    params.push(filter.status);
-  } else if (filter.withMedia) {
-    where.push("EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id)");
-  }
+  where.push(...messageWhere(filter, params));
   const sql = `SELECT m.id, m.account_id, m.platform, m.chat_type, m.chat_id, m.sender_id, m.sender_name, m.text,
       m.sent_at, m.received_at
     FROM messages m ${where.length ? `WHERE ${where.join(" AND ")}` : ""}

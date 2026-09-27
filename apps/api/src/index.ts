@@ -12,6 +12,7 @@ import { accountRoutes } from "#routes/accounts";
 import { settingsRoutes } from "#routes/settings";
 import { eventRoutes } from "#routes/events";
 import { mcpRoutes } from "#routes/mcp";
+import { exportRoutes } from "#routes/export";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -37,6 +38,7 @@ app.route("/api/media", mediaRoutes);
 app.route("/api/accounts", accountRoutes);
 app.route("/api/events", eventRoutes);
 app.route("/api/mcp", mcpRoutes);
+app.route("/api/export", exportRoutes);
 app.route("/api/settings", settingsRoutes);
 
 export default {

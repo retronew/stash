@@ -9,6 +9,8 @@ import { MediaViewer } from "#components/messages/MediaViewer";
 import { MediaStatsBar } from "#components/messages/MediaStatsBar";
 import { EMPTY_MESSAGE_FILTERS, MessagesFilterBar } from "#components/messages/MessagesFilterBar";
 import { useFilterState } from "#hooks/useFilterState";
+import { ExportDialog } from "#components/export/ExportDialog";
+import { exportFromFilters } from "#lib/export-plan";
 import { useMessages } from "#hooks/useMessages";
 import { useAccounts } from "#hooks/useAccounts";
 import { errorMessage } from "#lib/api";
@@ -36,7 +38,13 @@ export function MessagesPage() {
         <h1 className="font-heading text-lg font-semibold">{m.nav_messages()}</h1>
         <MediaStatsBar />
       </div>
-      <MessagesFilterBar filters={filters} onChange={set} onClear={clear} accounts={accounts ?? []} />
+      <MessagesFilterBar
+        filters={filters}
+        onChange={set}
+        onClear={clear}
+        accounts={accounts ?? []}
+        onExport={() => ExportDialog.call({ initial: exportFromFilters(filters) })}
+      />
 
       {feed.isLoading ? (
         <PageLoading />
@@ -79,6 +87,7 @@ export function MessagesPage() {
       )}
       <Confirm />
       <MediaViewer />
+      <ExportDialog />
     </div>
   );
 }

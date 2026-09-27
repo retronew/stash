@@ -5,6 +5,7 @@ import { AccountsCard } from "#components/settings/accounts/AccountsCard";
 import { ApiTokenCard } from "#components/settings/ApiTokenCard";
 import { McpCard } from "#components/settings/McpCard";
 import { RetentionCard } from "#components/settings/retention/RetentionCard";
+import { ExportCard } from "#components/settings/retention/ExportCard";
 import { AllowedEmailsCard } from "#components/settings/AllowedEmailsCard";
 import { BuildInfo } from "#components/settings/BuildInfo";
 import { SettingsTabHeader } from "#components/settings/SettingsTabHeader";
@@ -36,6 +37,7 @@ const TABS: SettingsTab[] = [
     description: m.settings_tab_data_description(),
     content: (
       <>
+        <ExportCard />
         <RetentionCard target="events" title={m.data_events_title()} description={m.data_events_description()} />
         <RetentionCard target="tasks" title={m.data_tasks_title()} description={m.data_tasks_description()} />
       </>
