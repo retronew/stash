@@ -1,0 +1,42 @@
+import { Hono } from "hono";
+import type { Env } from "#types";
+import { DEV_USER, enabledProviders, getAuth, isDevBypass } from "#auth";
+import { requireAuth } from "#auth-middleware";
+import { scheduled } from "#scheduled";
+import { queue } from "#media/consumer";
+import type { MediaJob } from "#media/jobs";
+import { webhookRoutes } from "#routes/webhooks";
+import { messageRoutes } from "#routes/messages";
+import { mediaRoutes } from "#routes/media";
+import { accountRoutes } from "#routes/accounts";
+import { settingsRoutes } from "#routes/settings";
+
+const app = new Hono<{ Bindings: Env }>();
+
+// Better Auth owns /api/auth/* (OAuth redirects, callbacks, session, sign-out).
+app.on(["GET", "POST"], "/api/auth/*", (c) => getAuth(c.env).handler(c.req.raw));
+
+app.use("/api/*", requireAuth);
+
+// Behind the auth middleware: 200 with the signed-in user, 401 otherwise.
+app.get("/api/me", async (c) => {
+  if (isDevBypass(c.env)) return c.json({ user: DEV_USER });
+  const session = await getAuth(c.env).api.getSession({ headers: c.req.raw.headers });
+  const user = session?.user;
+  return c.json({ user: user ? { name: user.name, email: user.email, image: user.image } : null });
+});
+
+app.get("/api/health", (c) => c.json({ ok: true }));
+// Lets the login page show only the providers that are configured.
+app.get("/api/public/auth-providers", (c) => c.json({ providers: enabledProviders(c.env) }));
+app.route("/api/webhooks", webhookRoutes);
+app.route("/api/messages", messageRoutes);
+app.route("/api/media", mediaRoutes);
+app.route("/api/accounts", accountRoutes);
+app.route("/api/settings", settingsRoutes);
+
+export default {
+  fetch: app.fetch,
+  queue,
+  scheduled,
+} satisfies ExportedHandler<Env, MediaJob>;

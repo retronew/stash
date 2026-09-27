@@ -1,0 +1,21 @@
+{
+  "name": "stash",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "concurrently -k \"pnpm dev:web\" \"pnpm dev:api\"",
+    "dev:web": "pnpm --filter @stash/web dev",
+    "dev:api": "pnpm --filter @stash/api dev",
+    "build": "pnpm --filter @stash/web build",
+    "deploy": "pnpm run build && pnpm --filter @stash/api deploy",
+    "db:migrate": "pnpm --filter @stash/api db:migrate",
+    "db:migrate:remote": "pnpm --filter @stash/api db:migrate:remote",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  }
+}

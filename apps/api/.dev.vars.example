@@ -1,0 +1,9 @@
+BETTER_AUTH_SECRET=change-me-to-a-long-random-string
+BETTER_AUTH_URL=http://localhost:5173
+ALLOWED_EMAILS=you@example.com
+# Local dev only: skip sign-in (ignored unless BETTER_AUTH_URL is localhost).
+DEV_AUTH_BYPASS=1
+# GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_SECRET=
+# GITHUB_CLIENT_ID=
+# GITHUB_CLIENT_SECRET=

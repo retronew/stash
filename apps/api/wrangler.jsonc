@@ -1,0 +1,74 @@
+{
+	"name": "stash",
+	"compatibility_date": "2026-03-24",
+	// Better Auth imports node:crypto / node:async_hooks.
+	"compatibility_flags": ["nodejs_compat"],
+	"main": "src/index.ts",
+	"assets": {
+		"directory": "./dist",
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": [
+			"/api/*"
+		]
+	},
+	// Public origin for Better Auth (OAuth callbacks: <url>/api/auth/callback/<provider>)
+	// and for the webhook URLs shown on the settings page.
+	// Secrets: BETTER_AUTH_SECRET, ALLOWED_EMAILS, GOOGLE_CLIENT_ID/SECRET, GITHUB_CLIENT_ID/SECRET.
+	"vars": {
+		"BETTER_AUTH_URL": "https://stash.example.com"
+	},
+	// Uncomment and set your domain to serve Stash on it:
+	// "routes": [{ "pattern": "stash.example.com", "custom_domain": true }],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "stash-db",
+			// `wrangler d1 create stash-db`, then paste the id here.
+			"database_id": "00000000-0000-0000-0000-000000000000",
+			"migrations_dir": "migrations"
+		}
+	],
+	// `wrangler r2 bucket create stash-media`: every downloaded attachment.
+	"r2_buckets": [
+		{
+			"binding": "MEDIA",
+			"bucket_name": "stash-media"
+		}
+	],
+	// `wrangler queues create stash-media` and `wrangler queues create stash-media-dlq`.
+	// The webhook only writes rows and enqueues; the consumer downloads into R2.
+	"queues": {
+		"producers": [
+			{ "binding": "MEDIA_QUEUE", "queue": "stash-media" }
+		],
+		"consumers": [
+			{
+				"queue": "stash-media",
+				// One attachment per invocation: a file can be tens of MB and take
+				// minutes, and one slow download shouldn't hold up (or fail) others.
+				"max_batch_size": 1,
+				"max_batch_timeout": 1,
+				"max_concurrency": 5,
+				// Above media/retry.ts MAX_ATTEMPTS, so our own backoff decides first;
+				// the dead-letter queue only catches consumers that crashed outright.
+				"max_retries": 12,
+				"dead_letter_queue": "stash-media-dlq"
+			},
+			{
+				"queue": "stash-media-dlq",
+				"max_batch_size": 10
+			}
+		]
+	},
+	// Every 10 minutes: re-enqueue attachments that were never queued (enqueue
+	// failed) or whose consumer died mid-download. See src/media/sweep.ts.
+	"triggers": {
+		"crons": [
+			"*/10 * * * *"
+		]
+	},
+	"observability": {
+		"enabled": true
+	}
+}
