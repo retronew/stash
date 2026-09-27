@@ -8,6 +8,8 @@ import { Menu, MenuPopup, MenuTrigger } from "#components/ui/menu";
 import { AttachmentTile } from "#components/messages/AttachmentTile";
 import { MessageInsights } from "#components/messages/MessageInsights";
 import { BotAvatar } from "#components/BotAvatar";
+import { SelectionCheckbox } from "#components/SelectionCheckbox";
+import { cn } from "#lib/utils";
 import { chatTypeLabel, platformLabel } from "#lib/labels";
 import { formatDateTime, formatRelative } from "#lib/format";
 import { m } from "#lib/i18n";
@@ -19,12 +21,30 @@ interface Props {
   onRetry: (id: number) => void;
   /** The "⋯" menu's items (they differ in the recycle bin). */
   menu: ReactNode;
+  /** Select mode: a click toggles the card instead of acting on it. */
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: number) => void;
 }
 
-export function MessageCard({ message, account, onOpen, onRetry, menu }: Props) {
+export function MessageCard({ message, account, onOpen, onRetry, menu, selectMode, selected, onToggleSelect }: Props) {
   return (
-    <Card className="gap-3 p-4 shadow-none before:shadow-none dark:before:shadow-none">
+    <Card
+      onClickCapture={(e) => {
+        // In select mode the whole card toggles; images and menus don't open.
+        if (!selectMode) return;
+        e.preventDefault();
+        e.stopPropagation();
+        onToggleSelect?.(message.id);
+      }}
+      className={cn(
+        "gap-3 p-4 shadow-none before:shadow-none dark:before:shadow-none",
+        selectMode && "cursor-pointer",
+        selected && "border-ring/60 bg-accent/40",
+      )}
+    >
       <div className="flex items-center gap-2 text-sm">
+        {selectMode && <SelectionCheckbox checked={!!selected} onChange={() => onToggleSelect?.(message.id)} />}
         <BotAvatar account={account} platform={message.platform} />
         <Badge variant="secondary">{account?.name || platformLabel(message.platform)}</Badge>
         <span className="text-muted-foreground">{chatTypeLabel(message.chatType)}</span>
@@ -36,7 +56,7 @@ export function MessageCard({ message, account, onOpen, onRetry, menu }: Props) 
         >
           {formatRelative(message.sentAt)}
         </time>
-        <Menu>
+        <Menu disabled={selectMode}>
           <MenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label={m.message_actions()} className="text-muted-foreground" />}>
             <EllipsisIcon />
           </MenuTrigger>

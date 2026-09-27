@@ -18,6 +18,9 @@ import { useMessages } from "#hooks/useMessages";
 import { useMessageSearch } from "#hooks/useMessageSearch";
 import { useAccounts } from "#hooks/useAccounts";
 import { useAnalysis } from "#hooks/useAnalysis";
+import { useMessageSelection } from "#hooks/useMessageSelection";
+import { BulkActionBar } from "#components/messages/BulkActionBar";
+import { TagsEditDialog } from "#components/messages/TagsEditDialog";
 import { analysisCategoriesFrom } from "#lib/categories";
 import { categoriesQuery, chatsQuery } from "#lib/queries";
 import { exportFromFilters } from "#lib/export-plan";
@@ -34,6 +37,11 @@ export function MessagesPage() {
   const categories = analysisCategoriesFrom(settings?.categories ?? [], inUse ?? []);
   const feed = useMessages(filters);
   const search = useMessageSearch(text, filters);
+  // Selection works on whatever is shown: search results or the feed.
+  const shown = search.active ? search.hits : feed.messages;
+  const allTags = [...new Set(shown.flatMap((msg) => msg.tags))].sort();
+  const selection = useMessageSelection(shown, allTags);
+  const categoryNames = categories.map((c) => c.category);
 
   return (
     <div className="space-y-4">
@@ -50,10 +58,14 @@ export function MessagesPage() {
         chats={chats ?? []}
         categories={categories}
         onExport={() => ExportDialog.call({ initial: exportFromFilters(filters) })}
+        selectMode={selection.selectMode}
+        onToggleSelectMode={selection.selectMode ? selection.exit : selection.start}
       />
 
+      {selection.selectMode && <BulkActionBar selection={selection} categories={categoryNames} />}
+
       {search.active ? (
-        <SearchResults search={search} accounts={accounts ?? []} categories={categories.map((c) => c.category)} actions={feed} />
+        <SearchResults search={search} accounts={accounts ?? []} categories={categoryNames} actions={feed} selection={selection} />
       ) : feed.isLoading ? (
         <PageLoading />
       ) : feed.error ? (
@@ -79,7 +91,7 @@ export function MessagesPage() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <MessageList messages={feed.messages} accounts={accounts ?? []} categories={categories.map((c) => c.category)} actions={feed}>
+        <MessageList messages={feed.messages} accounts={accounts ?? []} categories={categoryNames} actions={feed} selection={selection}>
           <LoadMoreButton hasMore={feed.hasMore} loading={feed.loadingMore} onLoadMore={feed.loadMore} />
         </MessageList>
       )}
@@ -87,6 +99,7 @@ export function MessagesPage() {
       <MediaViewer />
       <EditLabelsDialog />
       <ExportDialog />
+      <TagsEditDialog />
     </div>
   );
 }

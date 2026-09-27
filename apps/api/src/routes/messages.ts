@@ -4,6 +4,8 @@ import { messageQueryParams } from "#message-params";
 import type { Env } from "#types";
 import {
   categoryCounts,
+  editTags,
+  setCategory,
   getMessage,
   listChats,
   listMessages,
@@ -58,6 +60,34 @@ messageRoutes.patch("/:id{[0-9]+}", async (c) => {
 
 /** The conversations seen so far, for the chat filter. */
 messageRoutes.get("/chats", async (c) => c.json(await listChats(c.env.DB)));
+
+const BULK_ACTIONS = ["trash", "restore", "purge", "category", "add_tags", "remove_tags"] as const;
+
+/**
+ * body: { ids: number[], action, category?, tags? } — the selection's bulk
+ * actions, as in PickIt. Returns how many messages changed.
+ */
+messageRoutes.post("/bulk", async (c) => {
+  const body = await c.req
+    .json<{ ids?: unknown; action?: unknown; category?: unknown; tags?: unknown }>()
+    .catch(() => ({}) as Record<string, unknown>);
+  const ids = Array.isArray(body.ids) ? body.ids.filter((id): id is number => Number.isInteger(id)).slice(0, 1000) : [];
+  const action = BULK_ACTIONS.find((a) => a === body.action);
+  if (!action || ids.length === 0) return c.json({ error: "ids and a valid action are required" }, 400);
+  const tags = Array.isArray(body.tags) ? body.tags.filter((t): t is string => typeof t === "string") : [];
+  const db = c.env.DB;
+  const changed =
+    action === "trash"
+      ? await trashMessages(db, ids)
+      : action === "restore"
+        ? await restoreMessages(db, ids)
+        : action === "purge"
+          ? await purgeMessages(db, c.env.MEDIA, ids)
+          : action === "category"
+            ? await setCategory(db, ids, typeof body.category === "string" ? body.category : "")
+            : await editTags(db, ids, tags, action === "add_tags" ? "add" : "remove");
+  return c.json({ changed });
+});
 
 /** Moves a message to the recycle bin; its files stay until it's purged. */
 messageRoutes.delete("/:id{[0-9]+}", async (c) => {

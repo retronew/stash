@@ -234,6 +234,48 @@ export async function updateMessageLabels(db: D1Database, id: number, labels: { 
   return res.meta.changes > 0;
 }
 
+/** D1 binds at most 100 values per statement: runs `fn` over chunks of ids and sums the counts. */
+async function inChunks(ids: number[], size: number, fn: (chunk: number[]) => Promise<number>): Promise<number> {
+  let total = 0;
+  for (let i = 0; i < ids.length; i += size) total += await fn(ids.slice(i, i + size));
+  return total;
+}
+
+/** Sets one category on many messages; returns how many. */
+export async function setCategory(db: D1Database, ids: number[], category: string): Promise<number> {
+  return inChunks(ids, 90, async (chunk) => {
+    // RETURNING, not meta.changes: the full-text triggers' writes count there too.
+    const { results } = await db
+      .prepare(`UPDATE messages SET category = ? WHERE id IN (${chunk.map(() => "?").join(",")}) RETURNING id`)
+      .bind(category.trim().slice(0, 50), ...chunk)
+      .all();
+    return results.length;
+  });
+}
+
+/** Adds or removes tags on many messages (at most 10 tags each); returns how many changed. */
+export async function editTags(db: D1Database, ids: number[], tags: string[], mode: "add" | "remove"): Promise<number> {
+  const wanted = [...new Set(tags.map((t) => t.trim()).filter(Boolean))];
+  if (wanted.length === 0) return 0;
+  return inChunks(ids, 90, (chunk) => editTagsChunk(db, chunk, wanted, mode));
+}
+
+async function editTagsChunk(db: D1Database, ids: number[], wanted: string[], mode: "add" | "remove"): Promise<number> {
+  const { results } = await db
+    .prepare(`SELECT id, tags FROM messages WHERE id IN (${ids.map(() => "?").join(",")})`)
+    .bind(...ids)
+    .all<{ id: number; tags: string }>();
+  const writes = results.flatMap((r) => {
+    const before = parseTags(r.tags);
+    const after =
+      mode === "add" ? [...new Set([...before, ...wanted])].slice(0, 10) : before.filter((t) => !wanted.includes(t));
+    if (JSON.stringify(after) === JSON.stringify(before)) return [];
+    return [db.prepare("UPDATE messages SET tags = ? WHERE id = ?").bind(JSON.stringify(after), r.id)];
+  });
+  if (writes.length) await db.batch(writes);
+  return writes.length;
+}
+
 /** Categories in use, with counts, most used first. */
 export async function categoryCounts(db: D1Database): Promise<{ category: string; count: number }[]> {
   const { results } = await db
@@ -244,22 +286,25 @@ export async function categoryCounts(db: D1Database): Promise<{ category: string
 
 /** Moves messages to the recycle bin; returns how many were live. */
 export async function trashMessages(db: D1Database, ids: number[]): Promise<number> {
-  if (ids.length === 0) return 0;
-  const res = await db
-    .prepare(`UPDATE messages SET deleted_at = ? WHERE deleted_at IS NULL AND id IN (${ids.map(() => "?").join(",")})`)
-    .bind(Date.now(), ...ids)
-    .run();
-  return res.meta.changes ?? 0;
+  const now = Date.now();
+  return inChunks(ids, 90, async (chunk) => {
+    const res = await db
+      .prepare(`UPDATE messages SET deleted_at = ? WHERE deleted_at IS NULL AND id IN (${chunk.map(() => "?").join(",")})`)
+      .bind(now, ...chunk)
+      .run();
+    return res.meta.changes ?? 0;
+  });
 }
 
 /** Takes messages back out of the recycle bin; returns how many. */
 export async function restoreMessages(db: D1Database, ids: number[]): Promise<number> {
-  if (ids.length === 0) return 0;
-  const res = await db
-    .prepare(`UPDATE messages SET deleted_at = NULL WHERE deleted_at IS NOT NULL AND id IN (${ids.map(() => "?").join(",")})`)
-    .bind(...ids)
-    .run();
-  return res.meta.changes ?? 0;
+  return inChunks(ids, 90, async (chunk) => {
+    const res = await db
+      .prepare(`UPDATE messages SET deleted_at = NULL WHERE deleted_at IS NOT NULL AND id IN (${chunk.map(() => "?").join(",")})`)
+      .bind(...chunk)
+      .run();
+    return res.meta.changes ?? 0;
+  });
 }
 
 /** R2 deletes at most 1000 keys per call; D1 binds at most 100 values. */

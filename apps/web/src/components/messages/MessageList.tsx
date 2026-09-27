@@ -6,6 +6,7 @@ import { EditLabelsDialog } from "#components/messages/EditLabelsDialog";
 import { Confirm } from "#components/Confirm";
 import { m } from "#lib/i18n";
 import { MessageMenuItems } from "#components/messages/MessageMenuItems";
+import type { MessageSelection } from "#hooks/useMessageSelection";
 
 export interface MessageActions {
   remove: (id: number) => Promise<void>;
@@ -20,12 +21,14 @@ interface Props {
   /** Offered when editing a message's category. */
   categories: string[];
   actions: MessageActions;
+  /** Select mode and the selected cards. */
+  selection?: MessageSelection;
   /** Rendered after the cards, e.g. "load more". */
   children?: ReactNode;
 }
 
 /** Message cards with their actions (retry downloads, analyze, edit labels, move to the recycle bin). */
-export function MessageList({ messages, accounts, categories, actions, children }: Props) {
+export function MessageList({ messages, accounts, categories, actions, selection, children }: Props) {
   const accountById = new Map(accounts.map((a) => [a.id, a]));
 
   async function confirmDelete(message: Message) {
@@ -47,6 +50,9 @@ export function MessageList({ messages, accounts, categories, actions, children 
           account={accountById.get(msg.accountId)}
           onOpen={(attachment) => MediaViewer.call({ attachment })}
           onRetry={(id) => actions.retry([id])}
+          selectMode={selection?.selectMode}
+          selected={selection?.selectedIds.has(msg.id)}
+          onToggleSelect={selection?.toggle}
           menu={
             <MessageMenuItems
               message={msg}

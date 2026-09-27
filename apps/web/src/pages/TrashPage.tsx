@@ -1,4 +1,4 @@
-import { Trash2Icon } from "lucide-react";
+import { CheckSquareIcon, Trash2Icon } from "lucide-react";
 import { Button } from "#components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "#components/ui/empty";
 import { PageLoading } from "#components/PageLoading";
@@ -8,6 +8,8 @@ import { MediaViewer } from "#components/messages/MediaViewer";
 import { MessageCard } from "#components/messages/MessageCard";
 import { TrashMenuItems } from "#components/messages/MessageMenuItems";
 import { useTrash } from "#hooks/useTrash";
+import { useMessageSelection } from "#hooks/useMessageSelection";
+import { BulkActionBar } from "#components/messages/BulkActionBar";
 import { useAccounts } from "#hooks/useAccounts";
 import { useMediaRetry } from "#hooks/useMediaRetry";
 import { errorMessage } from "#lib/api";
@@ -16,6 +18,7 @@ import { m } from "#lib/i18n";
 /** Deleted messages, kept (files included) until purged by hand or by the retention setting. */
 export function TrashPage() {
   const trash = useTrash();
+  const selection = useMessageSelection(trash.messages);
   const retry = useMediaRetry();
   const { accounts } = useAccounts();
   const accountById = new Map((accounts ?? []).map((a) => [a.id, a]));
@@ -48,12 +51,24 @@ export function TrashPage() {
           <p className="text-muted-foreground text-xs">{m.trash_description()}</p>
         </div>
         {trash.messages.length > 0 && (
-          <Button variant="outline" size="sm" onClick={emptyAll}>
-            <Trash2Icon />
-            {m.empty_trash()}
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button variant="outline" size="sm" onClick={emptyAll}>
+              <Trash2Icon />
+              <span className="max-sm:sr-only">{m.empty_trash()}</span>
+            </Button>
+            <Button
+              variant={selection.selectMode ? "default" : "secondary"}
+              size="sm"
+              onClick={selection.selectMode ? selection.exit : selection.start}
+            >
+              <CheckSquareIcon />
+              <span className="max-sm:sr-only">{m.action_select()}</span>
+            </Button>
+          </div>
         )}
       </div>
+
+      {selection.selectMode && <BulkActionBar selection={selection} variant="trash" />}
 
       {trash.isLoading ? (
         <PageLoading />
@@ -75,6 +90,9 @@ export function TrashPage() {
               account={accountById.get(msg.accountId)}
               onOpen={(attachment) => MediaViewer.call({ attachment })}
               onRetry={(id) => retry([id])}
+              selectMode={selection.selectMode}
+              selected={selection.selectedIds.has(msg.id)}
+              onToggleSelect={selection.toggle}
               menu={<TrashMenuItems onRestore={() => trash.restore(msg.id)} onPurge={() => purge(msg.id)} />}
             />
           ))}

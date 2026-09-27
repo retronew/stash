@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DownloadIcon, ListFilterIcon } from "lucide-react";
+import { CheckSquareIcon, DownloadIcon, ListFilterIcon } from "lucide-react";
 import { Badge } from "#components/ui/badge";
 import { CHAT_TYPES, type Account, type ChatSummary, type ChatType, type Platform } from "@stash/shared";
 import { Button } from "#components/ui/button";
@@ -32,10 +32,12 @@ interface Props {
   categories: CategoryOption[];
   /** Packs the files these filters match. */
   onExport: () => void;
+  selectMode: boolean;
+  onToggleSelectMode: () => void;
 }
 
 /** Time and files (one of); platform, bot and chat type (any of); the export button; the active filters as chips. */
-export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats, categories, onExport }: Props) {
+export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats, categories, onExport, selectMode, onToggleSelectMode }: Props) {
   const [expanded, setExpanded] = useState(false);
   const media: { value: MessageFilters["media"]; label: string }[] = [
     { value: "all", label: m.filter_media_all() },
@@ -109,10 +111,16 @@ export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats,
         </Button>
         {/* Wide screens: the filters wrap among themselves, so the button on the right keeps its place. */}
         <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex">{controls}</div>
-        <Button variant="outline" size="sm" className="ml-auto shrink-0" onClick={onExport}>
-          <DownloadIcon />
-          <span className="max-sm:sr-only">{m.export_button()}</span>
-        </Button>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onExport}>
+            <DownloadIcon />
+            <span className="max-sm:sr-only">{m.export_button()}</span>
+          </Button>
+          <Button variant={selectMode ? "default" : "secondary"} size="sm" onClick={onToggleSelectMode}>
+            <CheckSquareIcon />
+            <span className="max-sm:sr-only">{m.action_select()}</span>
+          </Button>
+        </div>
       </div>
       {expanded && <div className="grid animate-fade-in grid-cols-2 gap-2 sm:hidden [&>*]:w-full">{controls}</div>}
       <ActiveFilters filters={chips} onClearAll={onClear} />
