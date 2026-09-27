@@ -299,6 +299,7 @@
   "filter_period": "期間",
   "filter_platform": "プラットフォーム",
   "filter_status": "状態",
+  "filters_toggle": "絞り込み",
   "insights_analyzing": "解析中…",
   "insights_details": "詳細",
   "insights_failed": "解析に失敗しました：{error}",

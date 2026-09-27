@@ -299,6 +299,7 @@
   "filter_period": "Time",
   "filter_platform": "Platforms",
   "filter_status": "Status",
+  "filters_toggle": "Filters",
   "insights_analyzing": "Analyzing…",
   "insights_details": "Details",
   "insights_failed": "Analysis failed: {error}",

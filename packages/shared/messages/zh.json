@@ -299,6 +299,7 @@
   "filter_period": "时间",
   "filter_platform": "平台",
   "filter_status": "状态",
+  "filters_toggle": "筛选",
   "insights_analyzing": "AI 识别中…",
   "insights_details": "识别详情",
   "insights_failed": "识别失败：{error}",

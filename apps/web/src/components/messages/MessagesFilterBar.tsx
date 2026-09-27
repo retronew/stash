@@ -1,4 +1,6 @@
-import { DownloadIcon } from "lucide-react";
+import { useState } from "react";
+import { DownloadIcon, ListFilterIcon } from "lucide-react";
+import { Badge } from "#components/ui/badge";
 import { CHAT_TYPES, type Account, type ChatSummary, type ChatType, type Platform } from "@stash/shared";
 import { Button } from "#components/ui/button";
 import { MultiSelectFilter } from "#components/filters/MultiSelectFilter";
@@ -34,6 +36,7 @@ interface Props {
 
 /** Time and files (one of); platform, bot and chat type (any of); the export button; the active filters as chips. */
 export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats, categories, onExport }: Props) {
+  const [expanded, setExpanded] = useState(false);
   const media: { value: MessageFilters["media"]; label: string }[] = [
     { value: "all", label: m.filter_media_all() },
     { value: "media", label: m.view_media() },
@@ -71,27 +74,47 @@ export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats,
     ...chipsFor("chatid", filters.chatIds, (v) => optionLabel(conversations, v), setChatIds),
   ];
 
+  const controls = (
+    <>
+      <SingleSelectFilter label={m.filter_period()} options={periods} value={filters.period} onChange={(period) => onChange({ period })} />
+      <SingleSelectFilter label={m.filter_media()} options={media} value={filters.media} onChange={(v) => onChange({ media: v })} />
+      <MultiSelectFilter label={m.filter_category()} options={categoryOptions} selected={filters.categories} onChange={setCategories} />
+      <MultiSelectFilter label={m.filter_platform()} options={platforms} selected={filters.platforms} onChange={setPlatforms} />
+      <MultiSelectFilter label={m.filter_bot()} options={bots} selected={filters.accounts} onChange={setBots} />
+      <MultiSelectFilter label={m.filter_chat_type()} options={chatTypes} selected={filters.chatTypes} onChange={setChats} />
+      <MultiSelectFilter
+        label={m.filter_chat()}
+        options={conversations}
+        selected={filters.chatIds}
+        onChange={setChatIds}
+        className="sm:w-40"
+      />
+    </>
+  );
+
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 sm:flex-wrap">
-        <SingleSelectFilter label={m.filter_period()} options={periods} value={filters.period} onChange={(period) => onChange({ period })} />
-        <SingleSelectFilter label={m.filter_media()} options={media} value={filters.media} onChange={(v) => onChange({ media: v })} />
-        <MultiSelectFilter label={m.filter_category()} options={categoryOptions} selected={filters.categories} onChange={setCategories} />
-        <MultiSelectFilter label={m.filter_platform()} options={platforms} selected={filters.platforms} onChange={setPlatforms} />
-        <MultiSelectFilter label={m.filter_bot()} options={bots} selected={filters.accounts} onChange={setBots} />
-        <MultiSelectFilter label={m.filter_chat_type()} options={chatTypes} selected={filters.chatTypes} onChange={setChats} />
-        <MultiSelectFilter
-          label={m.filter_chat()}
-          options={conversations}
-          selected={filters.chatIds}
-          onChange={setChatIds}
-          className="sm:w-40"
-        />
+      <div className="flex items-start gap-2">
+        {/* Phones: the filters sit behind a toggle, as on PickIt's audit page. */}
+        <Button
+          variant={expanded ? "secondary" : "outline"}
+          size="sm"
+          className="shrink-0 sm:hidden"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((v) => !v)}
+        >
+          <ListFilterIcon />
+          {m.filters_toggle()}
+          {chips.length > 0 && <Badge size="sm">{chips.length}</Badge>}
+        </Button>
+        {/* Wide screens: the filters wrap among themselves, so the button on the right keeps its place. */}
+        <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex">{controls}</div>
         <Button variant="outline" size="sm" className="ml-auto shrink-0" onClick={onExport}>
           <DownloadIcon />
           <span className="max-sm:sr-only">{m.export_button()}</span>
         </Button>
       </div>
+      {expanded && <div className="grid animate-fade-in grid-cols-2 gap-2 sm:hidden [&>*]:w-full">{controls}</div>}
       <ActiveFilters filters={chips} onClearAll={onClear} />
     </div>
   );
