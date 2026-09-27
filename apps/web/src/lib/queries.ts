@@ -6,6 +6,7 @@ import type {
   Account,
   AttachmentKind,
   AttachmentStatus,
+  ChatSummary,
   ChatType,
   EventOutcome,
   EventPage,
@@ -49,6 +50,7 @@ export interface MessageFilters {
   platforms: Platform[];
   accounts: string[];
   chatTypes: ChatType[];
+  chatIds: string[];
   /** all, only messages with files, or only those with a failed download. */
   media: "all" | "media" | "failed";
   period: Period;
@@ -84,6 +86,7 @@ export const messagesQuery = (filters: MessageFilters) =>
           since: periodStart(filters.period),
           account: filters.accounts,
           chat: filters.chatTypes,
+          chatid: filters.chatIds,
           media: filters.media === "media" ? true : undefined,
           status: filters.media === "failed" ? "failed" : undefined,
           before: pageParam,
@@ -183,6 +186,11 @@ export const eventTypesQuery = queryOptions({
   queryFn: () => api<EventTypeCount[]>("/api/events/types"),
 });
 
+export const chatsQuery = queryOptions({
+  queryKey: ["messages", "chats"],
+  queryFn: () => api<ChatSummary[]>("/api/messages/chats"),
+});
+
 export const apiTokenQuery = queryOptions({
   queryKey: ["settings", "api-token"],
   queryFn: () => api<{ masked: string | null }>("/api/settings/api-token"),
@@ -211,6 +219,7 @@ export const exportSummaryQuery = (o: {
   platforms: string[];
   accounts: string[];
   chatTypes: string[];
+  chatIds: string[];
   since?: number;
   until?: number;
   kinds: string[];
@@ -223,6 +232,7 @@ export const exportSummaryQuery = (o: {
           platform: o.platforms,
           account: o.accounts,
           chat: o.chatTypes,
+          chatid: o.chatIds,
           since: o.since,
           until: o.until,
           kind: o.kinds,

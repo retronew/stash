@@ -17,6 +17,7 @@ export const DEFAULT_EXPORT: ExportOptions = {
   platforms: [],
   accounts: [],
   chatTypes: [],
+  chatIds: [],
   from: "",
   to: "",
   kinds: ["image", "video", "audio", "file"],

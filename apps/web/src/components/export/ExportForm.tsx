@@ -7,9 +7,9 @@ import { Checkbox } from "#components/ui/checkbox";
 import { RadioGroup, Radio } from "#components/ui/radio-group";
 import { Skeleton } from "#components/ui/skeleton";
 import { MultiSelectFilter } from "#components/filters/MultiSelectFilter";
-import { accountOptions, enumOptions } from "#components/filters/options";
+import { accountOptions, chatOptions, enumOptions } from "#components/filters/options";
 import { dateRange, type ExportLayout, type ExportOptions } from "#lib/export-plan";
-import { exportSummaryQuery } from "#lib/queries";
+import { chatsQuery, exportSummaryQuery } from "#lib/queries";
 import { platformList } from "#lib/platforms";
 import { chatTypeLabel, kindLabel } from "#lib/labels";
 import { formatBytes } from "#lib/format";
@@ -33,7 +33,23 @@ export function ExportForm({ value, onChange, accounts }: Props) {
   const platforms = platformList();
   const { since, until } = dateRange(value.from, value.to);
   const summary = useQuery(
-    exportSummaryQuery({ platforms: value.platforms, accounts: value.accounts, chatTypes: value.chatTypes, since, until, kinds: value.kinds }),
+    exportSummaryQuery({
+      platforms: value.platforms,
+      accounts: value.accounts,
+      chatTypes: value.chatTypes,
+      chatIds: value.chatIds,
+      since,
+      until,
+      kinds: value.kinds,
+    }),
+  );
+  const { data: chats } = useQuery(chatsQuery);
+  // Bots of the chosen platforms, conversations of the chosen bots.
+  const bots = accounts.filter((a) => value.platforms.length === 0 || value.platforms.includes(a.platform));
+  const conversations = chatOptions(
+    (chats ?? []).filter((c) => value.platforms.length === 0 || value.platforms.includes(c.platform)),
+    accounts,
+    value.accounts,
   );
   const toggleKind = (kind: AttachmentKind, on: boolean) =>
     onChange({ kinds: on ? [...value.kinds, kind] : value.kinds.filter((k) => k !== kind) });
@@ -41,22 +57,25 @@ export function ExportForm({ value, onChange, accounts }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {platforms.length > 1 && (
-          <MultiSelectFilter
-            label={m.filter_platform()}
-            options={platforms.map((p) => ({ value: p.id, label: p.label() }))}
-            selected={value.platforms}
-            onChange={(v) => onChange({ platforms: v as Platform[] })}
-          />
-        )}
-        {accounts.length > 1 && (
-          <MultiSelectFilter
-            label={m.filter_bot()}
-            options={accountOptions(accounts)}
-            selected={value.accounts}
-            onChange={(v) => onChange({ accounts: v })}
-          />
-        )}
+        <MultiSelectFilter
+          label={m.filter_platform()}
+          options={platforms.map((p) => ({ value: p.id, label: p.label() }))}
+          selected={value.platforms}
+          onChange={(v) => onChange({ platforms: v as Platform[] })}
+        />
+        <MultiSelectFilter
+          label={m.filter_bot()}
+          options={accountOptions(bots)}
+          selected={value.accounts}
+          onChange={(v) => onChange({ accounts: v })}
+        />
+        <MultiSelectFilter
+          label={m.filter_chat()}
+          options={conversations}
+          selected={value.chatIds}
+          onChange={(v) => onChange({ chatIds: v })}
+          className="sm:w-40"
+        />
         <MultiSelectFilter
           label={m.filter_chat_type()}
           options={enumOptions(CHAT_TYPES, chatTypeLabel)}

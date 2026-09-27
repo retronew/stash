@@ -58,9 +58,7 @@ export function EventsFilterBar({ filters, onChange, onClear, accounts, reloadKe
           onChange={setTypes}
           className="sm:w-36"
         />
-        {bots.length > 1 && (
-          <MultiSelectFilter label={m.filter_bot()} options={bots} selected={filters.accounts} onChange={setBots} />
-        )}
+        <MultiSelectFilter label={m.filter_bot()} options={bots} selected={filters.accounts} onChange={setBots} />
       </div>
       <ActiveFilters
         filters={[

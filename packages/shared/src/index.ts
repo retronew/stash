@@ -156,6 +156,18 @@ export interface MediaTaskPage {
   nextCursor: number | null;
 }
 
+/** A conversation seen in the messages: one group, channel or direct chat with a bot. */
+export interface ChatSummary {
+  accountId: string;
+  platform: Platform;
+  chatType: ChatType;
+  chatId: string;
+  /** For a direct chat: the other person's name, when the platform gives one. */
+  name: string;
+  messages: number;
+  lastAt: number;
+}
+
 /** What an export with the current filters would contain. */
 export interface ExportSummary {
   /** Messages matching the filters (all go into messages.json). */

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { cursorParam, limitParam } from "#params";
 import { messageQueryParams } from "#message-params";
 import type { Env } from "#types";
-import { deleteMessage, listMessages } from "#messages";
+import { deleteMessage, listChats, listMessages } from "#messages";
 
 export const messageRoutes = new Hono<{ Bindings: Env }>();
 
@@ -20,6 +20,9 @@ messageRoutes.get("/", async (c) => {
     }),
   );
 });
+
+/** The conversations seen so far, for the chat filter. */
+messageRoutes.get("/chats", async (c) => c.json(await listChats(c.env.DB)));
 
 messageRoutes.delete("/:id{[0-9]+}", async (c) => {
   const ok = await deleteMessage(c.env.DB, c.env.MEDIA, Number(c.req.param("id")));

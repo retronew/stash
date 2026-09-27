@@ -59,6 +59,7 @@ function messagesUrl(o: ExportOptions, before: number | null): string {
   if (o.platforms.length) p.set("platform", o.platforms.join(","));
   if (o.accounts.length) p.set("account", o.accounts.join(","));
   if (o.chatTypes.length) p.set("chat", o.chatTypes.join(","));
+  if (o.chatIds.length) p.set("chatid", o.chatIds.join(","));
   if (since) p.set("since", String(since));
   if (until) p.set("until", String(until));
   // Without messages.json only messages with files matter.

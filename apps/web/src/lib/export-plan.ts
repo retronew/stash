@@ -10,6 +10,8 @@ export interface ExportOptions {
   platforms: Platform[];
   accounts: string[];
   chatTypes: ChatType[];
+  /** Specific conversations (chat ids); empty = all. */
+  chatIds: string[];
   /** Local dates (YYYY-MM-DD), inclusive; "" = open. */
   from: string;
   to: string;
@@ -38,7 +40,7 @@ export function localDate(ms: number): string {
 /** Export options matching the message feed's filters. */
 export function exportFromFilters(f: MessageFilters): Partial<ExportOptions> {
   const since = periodStart(f.period);
-  return { platforms: f.platforms, accounts: f.accounts, chatTypes: f.chatTypes, from: since ? localDate(since) : "" };
+  return { platforms: f.platforms, accounts: f.accounts, chatTypes: f.chatTypes, chatIds: f.chatIds, from: since ? localDate(since) : "" };
 }
 
 /** since / until in ms for the API, from inclusive local dates. */

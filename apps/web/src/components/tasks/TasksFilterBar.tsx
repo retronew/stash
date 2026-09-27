@@ -29,9 +29,7 @@ export function TasksFilterBar({ filters, onChange, onClear, accounts }: Props) 
       <div className="flex items-center gap-2 sm:flex-wrap">
         <MultiSelectFilter label={m.filter_status()} options={statuses} selected={filters.statuses} onChange={setStatuses} />
         <MultiSelectFilter label={m.filter_kind()} options={kinds} selected={filters.kinds} onChange={setKinds} />
-        {bots.length > 1 && (
-          <MultiSelectFilter label={m.filter_bot()} options={bots} selected={filters.accounts} onChange={setBots} />
-        )}
+        <MultiSelectFilter label={m.filter_bot()} options={bots} selected={filters.accounts} onChange={setBots} />
       </div>
       <ActiveFilters
         filters={[

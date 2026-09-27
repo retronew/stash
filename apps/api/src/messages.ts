@@ -1,4 +1,4 @@
-import type { AttachmentStatus, ChatType, MediaStats, Message, MessagePage, Platform } from "@stash/shared";
+import type { AttachmentStatus, ChatSummary, ChatType, MediaStats, Message, MessagePage, Platform } from "@stash/shared";
 import { toAttachment, type AttachmentRow } from "#media/attachments";
 import { inClause } from "#params";
 
@@ -20,6 +20,8 @@ export interface MessageQuery {
   platforms?: Platform[];
   accountIds?: string[];
   chatTypes?: ChatType[];
+  /** Specific conversations (chat ids). */
+  chatIds?: string[];
   /** Only messages with at least one attachment. */
   withMedia?: boolean;
   /** Text or sender name contains this (case-insensitive for ASCII). */
@@ -43,6 +45,7 @@ export function messageWhere(q: MessageQuery, params: unknown[]): string[] {
   if (q.platforms?.length) where.push(inClause("m.platform", q.platforms, params));
   if (q.accountIds?.length) where.push(inClause("m.account_id", q.accountIds, params));
   if (q.chatTypes?.length) where.push(inClause("m.chat_type", q.chatTypes, params));
+  if (q.chatIds?.length) where.push(inClause("m.chat_id", q.chatIds, params));
   if (q.query) {
     // "!" escapes LIKE's wildcards, so a search for "50%" means the text "50%".
     where.push("(m.text LIKE ? ESCAPE '!' OR m.sender_name LIKE ? ESCAPE '!')");
@@ -146,6 +149,22 @@ export async function deleteMessage(db: D1Database, bucket: R2Bucket, id: number
   if (results.length) await bucket.delete(results.map((r) => r.r2_key));
   const res = await db.prepare("DELETE FROM messages WHERE id = ?").bind(id).run();
   return res.meta.changes > 0;
+}
+
+/** Every conversation with its message count, most recent first. */
+export async function listChats(db: D1Database): Promise<ChatSummary[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT account_id AS accountId, platform, chat_type AS chatType, chat_id AS chatId,
+         COUNT(*) AS messages, MAX(sent_at) AS lastAt,
+         -- A direct chat is named after the person; groups have no name in the payload.
+         MAX(CASE WHEN chat_type IN ('c2c', 'dm') THEN sender_name ELSE '' END) AS name
+       FROM messages WHERE chat_id != ''
+       GROUP BY account_id, platform, chat_type, chat_id
+       ORDER BY lastAt DESC LIMIT 500`,
+    )
+    .all<ChatSummary>();
+  return results;
 }
 
 export async function mediaStats(db: D1Database): Promise<MediaStats> {

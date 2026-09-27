@@ -8,7 +8,9 @@ import { MessageCard } from "#components/messages/MessageCard";
 import { MediaViewer } from "#components/messages/MediaViewer";
 import { MediaStatsBar } from "#components/messages/MediaStatsBar";
 import { EMPTY_MESSAGE_FILTERS, MessagesFilterBar } from "#components/messages/MessagesFilterBar";
+import { useQuery } from "@tanstack/react-query";
 import { useFilterState } from "#hooks/useFilterState";
+import { chatsQuery } from "#lib/queries";
 import { ExportDialog } from "#components/export/ExportDialog";
 import { exportFromFilters } from "#lib/export-plan";
 import { useMessages } from "#hooks/useMessages";
@@ -19,6 +21,7 @@ import { m } from "#lib/i18n";
 export function MessagesPage() {
   const { filters, set, clear, filtered } = useFilterState(EMPTY_MESSAGE_FILTERS);
   const { accounts } = useAccounts();
+  const { data: chats } = useQuery(chatsQuery);
   const feed = useMessages(filters);
   const accountById = new Map((accounts ?? []).map((a) => [a.id, a]));
 
@@ -43,6 +46,7 @@ export function MessagesPage() {
         onChange={set}
         onClear={clear}
         accounts={accounts ?? []}
+        chats={chats ?? []}
         onExport={() => ExportDialog.call({ initial: exportFromFilters(filters) })}
       />
 

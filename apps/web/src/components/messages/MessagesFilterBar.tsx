@@ -1,10 +1,10 @@
 import { DownloadIcon } from "lucide-react";
-import { CHAT_TYPES, type Account, type ChatType, type Platform } from "@stash/shared";
+import { CHAT_TYPES, type Account, type ChatSummary, type ChatType, type Platform } from "@stash/shared";
 import { Button } from "#components/ui/button";
 import { MultiSelectFilter } from "#components/filters/MultiSelectFilter";
 import { SingleSelectFilter } from "#components/filters/SingleSelectFilter";
 import { ActiveFilters, chipsFor, type ActiveFilter } from "#components/filters/ActiveFilters";
-import { accountOptions, enumOptions, optionLabel } from "#components/filters/options";
+import { accountOptions, chatOptions, enumOptions, optionLabel } from "#components/filters/options";
 import type { MessageFilters, Period } from "#lib/queries";
 import { chatTypeLabel } from "#lib/labels";
 import { platformList } from "#lib/platforms";
@@ -14,6 +14,7 @@ export const EMPTY_MESSAGE_FILTERS: MessageFilters = {
   platforms: [],
   accounts: [],
   chatTypes: [],
+  chatIds: [],
   media: "all",
   period: "all",
 };
@@ -23,12 +24,13 @@ interface Props {
   onChange: (patch: Partial<MessageFilters>) => void;
   onClear: () => void;
   accounts: Account[];
+  chats: ChatSummary[];
   /** Packs the files these filters match. */
   onExport: () => void;
 }
 
 /** Time and files (one of); platform, bot and chat type (any of); the export button; the active filters as chips. */
-export function MessagesFilterBar({ filters, onChange, onClear, accounts, onExport }: Props) {
+export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats, onExport }: Props) {
   const media: { value: MessageFilters["media"]; label: string }[] = [
     { value: "all", label: m.filter_media_all() },
     { value: "media", label: m.view_media() },
@@ -43,7 +45,9 @@ export function MessagesFilterBar({ filters, onChange, onClear, accounts, onExpo
   ];
   const platforms = platformList().map((p) => ({ value: p.id, label: p.label() }));
   const bots = accountOptions(accounts);
-  const chats = enumOptions(CHAT_TYPES, chatTypeLabel);
+  const chatTypes = enumOptions(CHAT_TYPES, chatTypeLabel);
+  const conversations = chatOptions(chats, accounts, filters.accounts);
+  const setChatIds = (chatIds: string[]) => onChange({ chatIds });
   const setPlatforms = (v: string[]) => onChange({ platforms: v as Platform[] });
   const setBots = (accounts: string[]) => onChange({ accounts });
   const setChats = (v: string[]) => onChange({ chatTypes: v as ChatType[] });
@@ -58,6 +62,7 @@ export function MessagesFilterBar({ filters, onChange, onClear, accounts, onExpo
     ...chipsFor("platform", filters.platforms, (v) => optionLabel(platforms, v), setPlatforms),
     ...chipsFor("bot", filters.accounts, (v) => optionLabel(bots, v), setBots),
     ...chipsFor("chat", filters.chatTypes, (v) => chatTypeLabel(v as ChatType), setChats),
+    ...chipsFor("chatid", filters.chatIds, (v) => optionLabel(conversations, v), setChatIds),
   ];
 
   return (
@@ -65,11 +70,16 @@ export function MessagesFilterBar({ filters, onChange, onClear, accounts, onExpo
       <div className="flex items-center gap-2 sm:flex-wrap">
         <SingleSelectFilter label={m.filter_period()} options={periods} value={filters.period} onChange={(period) => onChange({ period })} />
         <SingleSelectFilter label={m.filter_media()} options={media} value={filters.media} onChange={(v) => onChange({ media: v })} />
-        {platforms.length > 1 && (
-          <MultiSelectFilter label={m.filter_platform()} options={platforms} selected={filters.platforms} onChange={setPlatforms} />
-        )}
-        {bots.length > 1 && <MultiSelectFilter label={m.filter_bot()} options={bots} selected={filters.accounts} onChange={setBots} />}
-        <MultiSelectFilter label={m.filter_chat_type()} options={chats} selected={filters.chatTypes} onChange={setChats} />
+        <MultiSelectFilter label={m.filter_platform()} options={platforms} selected={filters.platforms} onChange={setPlatforms} />
+        <MultiSelectFilter label={m.filter_bot()} options={bots} selected={filters.accounts} onChange={setBots} />
+        <MultiSelectFilter label={m.filter_chat_type()} options={chatTypes} selected={filters.chatTypes} onChange={setChats} />
+        <MultiSelectFilter
+          label={m.filter_chat()}
+          options={conversations}
+          selected={filters.chatIds}
+          onChange={setChatIds}
+          className="sm:w-40"
+        />
         <Button variant="outline" size="sm" className="ml-auto shrink-0" onClick={onExport}>
           <DownloadIcon />
           <span className="max-sm:sr-only">{m.export_button()}</span>
