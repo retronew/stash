@@ -1,60 +1,46 @@
-import type { Account, AttachmentKind, AttachmentStatus } from "@stash/shared";
-import { ToggleGroup, ToggleGroupItem } from "#components/ui/toggle-group";
-import { ScrollFade } from "#components/ScrollFade";
-import { AccountSelect } from "#components/AccountSelect";
+import { ATTACHMENT_KINDS, ATTACHMENT_STATUSES, type Account, type AttachmentKind, type AttachmentStatus } from "@stash/shared";
+import { MultiSelectFilter } from "#components/filters/MultiSelectFilter";
+import { ActiveFilters, chipsFor } from "#components/filters/ActiveFilters";
+import { accountOptions, enumOptions, optionLabel } from "#components/filters/options";
+import type { TaskFilters } from "#lib/queries";
 import { kindLabel, statusLabel } from "#lib/labels";
 import { m } from "#lib/i18n";
 
-const ALL = "all";
-const STATUSES: AttachmentStatus[] = ["pending", "downloading", "failed", "stored"];
-const KINDS: AttachmentKind[] = ["image", "video", "audio", "file"];
+export const EMPTY_TASK_FILTERS: TaskFilters = { accounts: [], statuses: [], kinds: [] };
 
 interface Props {
-  status: AttachmentStatus | undefined;
-  onStatusChange: (status: AttachmentStatus | undefined) => void;
-  kind: AttachmentKind | undefined;
-  onKindChange: (kind: AttachmentKind | undefined) => void;
-  account: string;
-  onAccountChange: (account: string) => void;
+  filters: TaskFilters;
+  onChange: (patch: Partial<TaskFilters>) => void;
+  onClear: () => void;
   accounts: Account[];
 }
 
-export function TasksFilterBar(props: Props) {
+/** Status, type and bot (each any of), and the active filters as chips. */
+export function TasksFilterBar({ filters, onChange, onClear, accounts }: Props) {
+  const statuses = enumOptions(ATTACHMENT_STATUSES, statusLabel);
+  const kinds = enumOptions(ATTACHMENT_KINDS, kindLabel);
+  const bots = accountOptions(accounts);
+  const setStatuses = (v: string[]) => onChange({ statuses: v as AttachmentStatus[] });
+  const setKinds = (v: string[]) => onChange({ kinds: v as AttachmentKind[] });
+  const setBots = (accounts: string[]) => onChange({ accounts });
+
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <ScrollFade className="max-w-full">
-        <ToggleGroup
-          aria-label={m.filter_status()}
-          variant="outline"
-          size="sm"
-          value={[props.status ?? ALL]}
-          onValueChange={(v) => v[0] && props.onStatusChange(v[0] === ALL ? undefined : (v[0] as AttachmentStatus))}
-        >
-          <ToggleGroupItem value={ALL}>{m.view_all()}</ToggleGroupItem>
-          {STATUSES.map((s) => (
-            <ToggleGroupItem key={s} value={s}>
-              {statusLabel(s)}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </ScrollFade>
-      <ScrollFade className="max-w-full">
-        <ToggleGroup
-          aria-label={m.filter_kind()}
-          variant="outline"
-          size="sm"
-          value={[props.kind ?? ALL]}
-          onValueChange={(v) => v[0] && props.onKindChange(v[0] === ALL ? undefined : (v[0] as AttachmentKind))}
-        >
-          <ToggleGroupItem value={ALL}>{m.view_all()}</ToggleGroupItem>
-          {KINDS.map((k) => (
-            <ToggleGroupItem key={k} value={k}>
-              {kindLabel(k)}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </ScrollFade>
-      <AccountSelect accounts={props.accounts} value={props.account} onChange={props.onAccountChange} />
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 sm:flex-wrap">
+        <MultiSelectFilter label={m.filter_status()} options={statuses} selected={filters.statuses} onChange={setStatuses} />
+        <MultiSelectFilter label={m.filter_kind()} options={kinds} selected={filters.kinds} onChange={setKinds} />
+        {bots.length > 1 && (
+          <MultiSelectFilter label={m.filter_bot()} options={bots} selected={filters.accounts} onChange={setBots} />
+        )}
+      </div>
+      <ActiveFilters
+        filters={[
+          ...chipsFor("status", filters.statuses, (v) => optionLabel(statuses, v), setStatuses),
+          ...chipsFor("kind", filters.kinds, (v) => optionLabel(kinds, v), setKinds),
+          ...chipsFor("bot", filters.accounts, (v) => optionLabel(bots, v), setBots),
+        ]}
+        onClearAll={onClear}
+      />
     </div>
   );
 }

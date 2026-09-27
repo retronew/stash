@@ -1,26 +1,26 @@
 import { Hono } from "hono";
-import type { AttachmentStatus } from "@stash/shared";
+import { ATTACHMENT_STATUSES, CHAT_TYPES } from "@stash/shared";
+import { cursorParam, limitParam, listParam } from "#params";
 import type { Env } from "#types";
 import { deleteMessage, listMessages } from "#messages";
 
 export const messageRoutes = new Hono<{ Bindings: Env }>();
 
-const STATUSES: AttachmentStatus[] = ["pending", "downloading", "stored", "failed"];
-const MAX_LIMIT = 100;
-
-/** ?before=<id>&limit=&account=<id>&media=1&status=failed */
+/**
+ * ?before=<id>&limit=&q=<text>&account=<id,id>&chat=c2c,group&media=1&status=failed
+ * (lists are comma separated; any value matches).
+ */
 messageRoutes.get("/", async (c) => {
   const q = c.req.query();
-  const before = Number(q.before);
-  const limit = Math.min(Math.max(Number(q.limit) || 30, 1), MAX_LIMIT);
-  const status = STATUSES.find((s) => s === q.status);
   return c.json(
     await listMessages(c.env.DB, {
-      before: Number.isInteger(before) && before > 0 ? before : undefined,
-      limit,
-      accountId: q.account || undefined,
+      before: cursorParam(q.before),
+      limit: limitParam(q.limit, 30),
+      query: q.q?.trim() || undefined,
+      accountIds: listParam(q.account),
+      chatTypes: listParam(q.chat, CHAT_TYPES),
       withMedia: q.media === "1",
-      status,
+      status: ATTACHMENT_STATUSES.find((s) => s === q.status),
     }),
   );
 });

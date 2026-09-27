@@ -3,10 +3,12 @@ import {
   type EventOutcome,
   type EventPage,
   type EventStats,
+  type EventTypeCount,
   type Platform,
   type WebhookEvent,
   type WebhookEventDetail,
 } from "@stash/shared";
+import { inClause } from "#params";
 
 // The webhook event log: every call, hit or miss (see migration 0002).
 
@@ -83,10 +85,11 @@ function toEvent(row: EventRow): WebhookEvent {
 export interface EventFilter {
   before?: number;
   limit: number;
-  accountId?: string;
+  accountIds?: string[];
   /** true: hits only; false: misses only. */
   hit?: boolean;
-  outcome?: EventOutcome;
+  outcomes?: EventOutcome[];
+  eventTypes?: string[];
 }
 
 const COLUMNS = "id, account_id, platform, event_type, outcome, detail, message_id, received_at";
@@ -99,16 +102,10 @@ export async function listEvents(db: D1Database, filter: EventFilter): Promise<E
     where.push("id < ?");
     params.push(filter.before);
   }
-  if (filter.accountId) {
-    where.push("account_id = ?");
-    params.push(filter.accountId);
-  }
-  if (filter.outcome) {
-    where.push("outcome = ?");
-    params.push(filter.outcome);
-  } else if (filter.hit !== undefined) {
-    where.push(`outcome ${filter.hit ? "" : "NOT "}IN (${hitList})`);
-  }
+  if (filter.accountIds?.length) where.push(inClause("account_id", filter.accountIds, params));
+  if (filter.hit !== undefined) where.push(`outcome ${filter.hit ? "" : "NOT "}IN (${hitList})`);
+  if (filter.outcomes?.length) where.push(inClause("outcome", filter.outcomes, params));
+  if (filter.eventTypes?.length) where.push(inClause("event_type", filter.eventTypes, params));
   const { results } = await db
     .prepare(
       `SELECT ${COLUMNS} FROM webhook_events ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
@@ -140,6 +137,17 @@ export async function eventStats(db: D1Database, sinceHours: number): Promise<Ev
     total += r.count;
   }
   return { sinceHours, total, byOutcome };
+}
+
+/** Event types seen in the log (last 30 days), most frequent first, for the filter. */
+export async function eventTypeCounts(db: D1Database): Promise<EventTypeCount[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT platform, event_type AS type, COUNT(*) AS count FROM webhook_events
+       WHERE event_type != '' GROUP BY platform, event_type ORDER BY count DESC LIMIT 200`,
+    )
+    .all<EventTypeCount>();
+  return results;
 }
 
 export async function pruneEvents(db: D1Database) {

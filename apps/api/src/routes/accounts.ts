@@ -1,6 +1,7 @@
-import { Hono, type Context } from "hono";
+import { Hono } from "hono";
 import { isPlatform } from "@stash/shared";
 import type { Env } from "#types";
+import { publicOrigin } from "#origin";
 import {
   createAccount,
   getAccount,
@@ -14,18 +15,6 @@ import {
 
 /** Bot accounts (App ID / secret / webhook path), mounted at /api/accounts. */
 export const accountRoutes = new Hono<{ Bindings: Env }>();
-
-type Ctx = Context<{ Bindings: Env }>;
-
-/** Where webhook URLs point: the configured public origin, else this request's. */
-function publicOrigin(c: Ctx): string {
-  try {
-    if (c.env.BETTER_AUTH_URL) return new URL(c.env.BETTER_AUTH_URL).origin;
-  } catch {
-    // fall through
-  }
-  return new URL(c.req.url).origin;
-}
 
 /** Validated input, or an error message. */
 function parseInput(body: Record<string, unknown>): AccountInput | string {
@@ -51,7 +40,7 @@ const isUniqueError = (err: unknown) => err instanceof Error && /UNIQUE/i.test(e
 
 accountRoutes.get("/", async (c) => {
   const rows = await listAccounts(c.env.DB);
-  return c.json({ origin: publicOrigin(c), accounts: rows.map(toAccount) });
+  return c.json({ origin: publicOrigin(c.env, c.req.url), accounts: rows.map(toAccount) });
 });
 
 accountRoutes.post("/", async (c) => {

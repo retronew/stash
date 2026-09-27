@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router";
 import { BotIcon, ShieldCheckIcon } from "lucide-react";
 import { AccountsCard } from "#components/settings/accounts/AccountsCard";
 import { ApiTokenCard } from "#components/settings/ApiTokenCard";
+import { McpCard } from "#components/settings/McpCard";
 import { AllowedEmailsCard } from "#components/settings/AllowedEmailsCard";
 import { BuildInfo } from "#components/settings/BuildInfo";
 import { SettingsTabHeader } from "#components/settings/SettingsTabHeader";
@@ -36,6 +37,7 @@ const TABS: SettingsTab[] = [
       <>
         <AllowedEmailsCard />
         <ApiTokenCard />
+        <McpCard />
       </>
     ),
   },

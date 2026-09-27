@@ -2,20 +2,23 @@ import { useId, useState } from "react";
 import { createCallable } from "react-call";
 import { useEntered } from "#hooks/useEntered";
 import { RefreshCwIcon } from "lucide-react";
-import type { Account } from "@stash/shared";
+import type { Account, Platform } from "@stash/shared";
 import { Dialog, DialogFooter, DialogHeader, DialogPanel, DialogPopup, DialogTitle } from "#components/ui/dialog";
 import { Field, FieldDescription, FieldLabel } from "#components/ui/field";
 import { Input } from "#components/ui/input";
 import { Button } from "#components/ui/button";
 import { Switch } from "#components/ui/switch";
 import { Spinner } from "#components/ui/spinner";
-import type { AccountPayload } from "#hooks/useAccounts";
+import { webhookUrl, type AccountPayload } from "#hooks/useAccounts";
+import { platformInfo } from "#lib/platforms";
 import { errorMessage } from "#lib/api";
 import { m } from "#lib/i18n";
 
 interface Props {
   /** null: adding a new account. */
   account: Account | null;
+  /** The new account's platform (ignored when editing). */
+  platform: Platform;
   origin: string;
   /** Resolves when saved; a thrown error is shown and the dialog stays open. */
   onSubmit: (payload: AccountPayload) => Promise<unknown>;
@@ -24,8 +27,9 @@ interface Props {
 const randomKey = () => crypto.randomUUID().replace(/-/g, "").slice(0, 20);
 const KEY_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
-/** Add or edit a QQ bot: App ID, App Secret and the webhook path. */
-export const AccountFormDialog = createCallable<Props, boolean>(({ account, origin, onSubmit, call }) => {
+/** Add or edit a bot: its name, the platform's two credentials and the webhook path. */
+export const AccountFormDialog = createCallable<Props, boolean>(({ account, platform: newPlatform, origin, onSubmit, call }) => {
+  const platform = platformInfo(account?.platform ?? newPlatform);
   const id = useId();
   const entered = useEntered();
   const [form, setForm] = useState<AccountPayload>({
@@ -61,7 +65,7 @@ export const AccountFormDialog = createCallable<Props, boolean>(({ account, orig
     <Dialog open={entered && !call.ended} onOpenChange={(open) => !open && !saving && call.end(false)}>
       <DialogPopup>
         <DialogHeader>
-          <DialogTitle>{account ? m.account_edit_title() : m.account_add_title()}</DialogTitle>
+          <DialogTitle>{(account ? m.account_edit_title : m.account_add_title)({ platform: platform.label() })}</DialogTitle>
         </DialogHeader>
         <DialogPanel>
           <form
@@ -82,11 +86,11 @@ export const AccountFormDialog = createCallable<Props, boolean>(({ account, orig
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor={`${id}-app-id`}>App ID</FieldLabel>
+              <FieldLabel htmlFor={`${id}-app-id`}>{platform.credentials.id()}</FieldLabel>
               <Input id={`${id}-app-id`} value={form.appId} autoComplete="off" onChange={(e) => set({ appId: e.target.value })} />
             </Field>
             <Field>
-              <FieldLabel htmlFor={`${id}-secret`}>App Secret</FieldLabel>
+              <FieldLabel htmlFor={`${id}-secret`}>{platform.credentials.secret()}</FieldLabel>
               <Input
                 id={`${id}-secret`}
                 type="password"
@@ -111,7 +115,7 @@ export const AccountFormDialog = createCallable<Props, boolean>(({ account, orig
                 </Button>
               </div>
               <FieldDescription className="break-all">
-                {origin}/api/webhooks/qq/{form.webhookKey || "…"}
+                {webhookUrl(origin, { platform: platform.id, webhookKey: form.webhookKey || "…" })}
               </FieldDescription>
               {!keyValid && <p className="text-destructive text-xs">{m.account_webhook_invalid()}</p>}
             </Field>

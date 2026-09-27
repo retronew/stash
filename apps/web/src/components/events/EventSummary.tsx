@@ -7,8 +7,8 @@ import { m } from "#lib/i18n";
 const HOURS = 24;
 
 /** Webhook calls in the last 24 hours: all, hits, misses, and those that failed. */
-export function EventSummary() {
-  const { data } = useQuery({ ...eventStatsQuery(HOURS), refetchInterval: 30_000 });
+export function EventSummary({ live }: { live: boolean }) {
+  const { data } = useQuery({ ...eventStatsQuery(HOURS), refetchInterval: live ? 5000 : false });
   if (!data) return <div className="h-[76px]" />;
   const hits = HIT_OUTCOMES.reduce((n, o) => n + data.byOutcome[o], 0);
   const problems = data.byOutcome.rejected + data.byOutcome.error;

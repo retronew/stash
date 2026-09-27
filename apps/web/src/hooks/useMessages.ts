@@ -14,7 +14,7 @@ const inFlight = (messages: Message[]) =>
 export function useMessages(filters: MessageFilters) {
   const queryClient = useQueryClient();
   const retry = useMediaRetry();
-  const list = usePagedList(messagesQuery(filters), messagesOf, { while: inFlight, ms: 5000 });
+  const list = usePagedList(messagesQuery(filters), messagesOf, { pollWhile: inFlight });
 
   async function remove(id: number) {
     try {

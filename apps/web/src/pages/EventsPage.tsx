@@ -1,45 +1,55 @@
-import { useState } from "react";
-import type { EventOutcome } from "@stash/shared";
+import { useQueryClient } from "@tanstack/react-query";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "#components/ui/empty";
 import { PageLoading } from "#components/PageLoading";
 import { LoadMoreButton } from "#components/LoadMoreButton";
+import { LiveRefreshControls } from "#components/LiveRefreshControls";
 import { EventSummary } from "#components/events/EventSummary";
-import { EventsFilterBar, type HitView } from "#components/events/EventsFilterBar";
+import { EMPTY_EVENT_FILTERS, EventsFilterBar } from "#components/events/EventsFilterBar";
 import { EventRow } from "#components/events/EventRow";
 import { EventDetailDialog } from "#components/events/EventDetailDialog";
 import { useEvents } from "#hooks/useEvents";
 import { useAccounts } from "#hooks/useAccounts";
+import { useFilterState } from "#hooks/useFilterState";
+import { usePersistentFlag } from "#hooks/usePersistentFlag";
 import { errorMessage } from "#lib/api";
 import { m } from "#lib/i18n";
 
-/** Every webhook call, hit or miss, kept for 30 days. */
+/** Every webhook call, hit or miss, kept for 30 days; live refresh like PickIt's audit log. */
 export function EventsPage() {
-  const [view, setView] = useState<HitView>("all");
-  const [outcome, setOutcome] = useState<EventOutcome>();
-  const [account, setAccount] = useState("");
+  const queryClient = useQueryClient();
+  const { filters, set, clear, filtered } = useFilterState(EMPTY_EVENT_FILTERS);
+  const [live, setLive] = usePersistentFlag("stash-events-live", true);
   const { accounts } = useAccounts();
   const accountById = new Map((accounts ?? []).map((a) => [a.id, a]));
-  const list = useEvents({
-    account: account || undefined,
-    outcome,
-    hit: outcome ? undefined : view === "all" ? undefined : view === "hit",
-  });
+  const list = useEvents(filters, live);
+
+  function refresh() {
+    list.refresh();
+    queryClient.invalidateQueries({ queryKey: ["events", "stats"] });
+  }
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="font-heading text-lg font-semibold">{m.nav_events()}</h1>
-        <p className="text-muted-foreground text-sm">{m.events_description()}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-heading font-semibold text-lg">{m.nav_events()}</h1>
+          <p className="text-muted-foreground text-xs">{m.events_description()}</p>
+        </div>
+        <LiveRefreshControls
+          live={live}
+          onLiveChange={setLive}
+          onRefresh={refresh}
+          refreshing={list.refreshing}
+          updatedAt={list.updatedAt}
+        />
       </div>
-      <EventSummary />
+      <EventSummary live={live} />
       <EventsFilterBar
-        view={view}
-        onViewChange={setView}
-        outcome={outcome}
-        onOutcomeChange={setOutcome}
-        account={account}
-        onAccountChange={setAccount}
+        filters={filters}
+        onChange={set}
+        onClear={clear}
         accounts={accounts ?? []}
+        reloadKey={list.updatedAt}
       />
       {list.isLoading ? (
         <PageLoading />
@@ -48,8 +58,8 @@ export function EventsPage() {
       ) : list.events.length === 0 ? (
         <Empty className="animate-fade-in">
           <EmptyHeader>
-            <EmptyTitle>{m.events_empty()}</EmptyTitle>
-            <EmptyDescription>{m.events_empty_hint()}</EmptyDescription>
+            <EmptyTitle>{filtered ? m.list_empty_filtered() : m.events_empty()}</EmptyTitle>
+            <EmptyDescription>{filtered ? m.list_empty_filtered_hint() : m.events_empty_hint()}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (

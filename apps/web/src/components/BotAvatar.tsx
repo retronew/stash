@@ -1,12 +1,7 @@
-import type { ComponentType, SVGProps } from "react";
 import { BotIcon } from "lucide-react";
 import type { Account, Platform } from "@stash/shared";
-import { QQBotIcon } from "#components/icons/QQBotIcon";
+import { platformInfo } from "#lib/platforms";
 import { cn } from "#lib/utils";
-
-const PLATFORM_ICONS: Record<Platform, ComponentType<SVGProps<SVGSVGElement>>> = {
-  qq: QQBotIcon,
-};
 
 interface Props {
   /** The bot, when known; its own picture wins over the platform icon. */
@@ -17,7 +12,7 @@ interface Props {
 
 /** A bot's picture, or its platform's icon when it has none. Size it with className (default size-6). */
 export function BotAvatar({ account, platform, className }: Props) {
-  const Icon = PLATFORM_ICONS[platform] ?? BotIcon;
+  const Icon = platformInfo(platform)?.icon ?? BotIcon;
   return (
     <span
       className={cn(

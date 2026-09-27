@@ -1,7 +1,7 @@
 import type { Account, WebhookEvent } from "@stash/shared";
 import { Badge } from "#components/ui/badge";
 import { BotAvatar } from "#components/BotAvatar";
-import { accountLabel } from "#components/AccountSelect";
+import { accountLabel } from "#lib/labels";
 import { outcomeLabel, outcomeVariant } from "#lib/labels";
 import { eventName } from "#lib/event-names";
 import { formatDateTime, formatRelative } from "#lib/format";

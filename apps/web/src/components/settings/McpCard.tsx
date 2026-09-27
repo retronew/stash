@@ -1,0 +1,68 @@
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "#components/ui/card";
+import { Tabs, TabsList, TabsTab, TabsPanel } from "#components/ui/tabs";
+import { CopyButton } from "#components/CopyButton";
+import { m } from "#lib/i18n";
+
+const token = () => m.mcp_token_placeholder();
+
+function Snippet({ code }: { code: string }) {
+  return (
+    <div className="relative">
+      <pre className="rounded-lg bg-muted p-3 pr-10 font-mono break-all whitespace-pre-wrap text-xs leading-relaxed">{code}</pre>
+      <CopyButton text={code} aria-label={m.action_copy()} className="absolute top-2 right-2" />
+    </div>
+  );
+}
+
+/** How to connect AI assistants to Stash over MCP. */
+export function McpCard() {
+  const url = `${window.location.origin}/api/mcp`;
+  const clients = {
+    "claude-code": {
+      label: "Claude Code",
+      code: `claude mcp add --transport http stash ${url} \\\n  --header "Authorization: Bearer ${token()}"`,
+    },
+    json: {
+      label: m.mcp_json(),
+      code: JSON.stringify(
+        { mcpServers: { stash: { type: "http", url, headers: { Authorization: `Bearer ${token()}` } } } },
+        null,
+        2,
+      ),
+    },
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{m.mcp_title()}</CardTitle>
+        <CardDescription>
+          {m.mcp_description()}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-1">
+          <p className="text-muted-foreground text-xs">{m.mcp_endpoint()}</p>
+          <Snippet code={url} />
+        </div>
+        <Tabs defaultValue="claude-code">
+          <TabsList variant="underline">
+            {Object.entries(clients).map(([id, c]) => (
+              <TabsTab key={id} value={id}>
+                {c.label}
+              </TabsTab>
+            ))}
+          </TabsList>
+          {Object.entries(clients).map(([id, c]) => (
+            <TabsPanel key={id} value={id} className="pt-1">
+              <Snippet code={c.code} />
+            </TabsPanel>
+          ))}
+        </Tabs>
+        <p className="text-muted-foreground text-xs">
+          {m.mcp_tools()}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}

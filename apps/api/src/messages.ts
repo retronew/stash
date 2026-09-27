@@ -1,5 +1,6 @@
 import type { AttachmentStatus, ChatType, MediaStats, Message, MessagePage, Platform } from "@stash/shared";
 import { toAttachment, type AttachmentRow } from "#media/attachments";
+import { inClause } from "#params";
 
 interface MessageRow {
   id: number;
@@ -18,9 +19,15 @@ export interface MessageFilter {
   /** Only messages with a smaller id (the previous page's nextCursor). */
   before?: number;
   limit: number;
-  accountId?: string;
+  accountIds?: string[];
+  chatTypes?: ChatType[];
   /** Only messages with at least one attachment. */
   withMedia?: boolean;
+  /** Text or sender name contains this (case-insensitive for ASCII). */
+  query?: string;
+  /** sent_at range, ms. */
+  since?: number;
+  until?: number;
   /** Only messages with an attachment in this state. */
   status?: AttachmentStatus;
 }
@@ -34,9 +41,21 @@ export async function listMessages(db: D1Database, filter: MessageFilter): Promi
     where.push("m.id < ?");
     params.push(filter.before);
   }
-  if (filter.accountId) {
-    where.push("m.account_id = ?");
-    params.push(filter.accountId);
+  if (filter.accountIds?.length) where.push(inClause("m.account_id", filter.accountIds, params));
+  if (filter.chatTypes?.length) where.push(inClause("m.chat_type", filter.chatTypes, params));
+  if (filter.query) {
+    // "!" escapes LIKE's wildcards, so a search for "50%" means the text "50%".
+    where.push("(m.text LIKE ? ESCAPE '!' OR m.sender_name LIKE ? ESCAPE '!')");
+    const like = `%${filter.query.replace(/[!%_]/g, (ch) => `!${ch}`)}%`;
+    params.push(like, like);
+  }
+  if (filter.since) {
+    where.push("m.sent_at >= ?");
+    params.push(filter.since);
+  }
+  if (filter.until) {
+    where.push("m.sent_at < ?");
+    params.push(filter.until);
   }
   if (filter.status) {
     where.push("EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id AND a.status = ?)");
@@ -74,6 +93,19 @@ async function attachmentsOf(db: D1Database, messageIds: number[]): Promise<Map<
     out.set(row.message_id, list);
   }
   return out;
+}
+
+/** One message with its attachments, or null. */
+export async function getMessage(db: D1Database, id: number): Promise<Message | null> {
+  const row = await db
+    .prepare(
+      `SELECT id, account_id, platform, chat_type, chat_id, sender_id, sender_name, text, sent_at, received_at
+       FROM messages WHERE id = ?`,
+    )
+    .bind(id)
+    .first<MessageRow>();
+  if (!row) return null;
+  return toMessage(row, (await attachmentsOf(db, [id])).get(id) ?? []);
 }
 
 function toMessage(row: MessageRow, attachments: AttachmentRow[]): Message {

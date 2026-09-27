@@ -4,26 +4,23 @@ import { resetForRetry } from "#media/attachments";
 import { enqueueDownloads } from "#media/jobs";
 import { mediaStats } from "#messages";
 import { getTask, listTasks } from "#media/tasks";
-import type { AttachmentKind, AttachmentStatus } from "@stash/shared";
+import { ATTACHMENT_KINDS, ATTACHMENT_STATUSES } from "@stash/shared";
+import { cursorParam, limitParam, listParam } from "#params";
 
 export const mediaRoutes = new Hono<{ Bindings: Env }>();
 
-const STATUSES: AttachmentStatus[] = ["pending", "downloading", "stored", "failed"];
-const KINDS: AttachmentKind[] = ["image", "video", "audio", "file"];
-
 mediaRoutes.get("/stats", async (c) => c.json(await mediaStats(c.env.DB)));
 
-/** Download tasks: ?before=<id>&limit=&status=&kind=&account= */
+/** Download tasks: ?before=<id>&limit=&status=a,b&kind=a,b&account=a,b (any value matches). */
 mediaRoutes.get("/tasks", async (c) => {
   const q = c.req.query();
-  const before = Number(q.before);
   return c.json(
     await listTasks(c.env.DB, {
-      before: Number.isInteger(before) && before > 0 ? before : undefined,
-      limit: Math.min(Math.max(Number(q.limit) || 50, 1), 100),
-      status: STATUSES.find((s) => s === q.status),
-      kind: KINDS.find((k) => k === q.kind),
-      accountId: q.account || undefined,
+      before: cursorParam(q.before),
+      limit: limitParam(q.limit, 50),
+      statuses: listParam(q.status, ATTACHMENT_STATUSES),
+      kinds: listParam(q.kind, ATTACHMENT_KINDS),
+      accountIds: listParam(q.account),
     }),
   );
 });

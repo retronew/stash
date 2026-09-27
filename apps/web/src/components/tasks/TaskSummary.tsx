@@ -7,8 +7,8 @@ import { formatBytes } from "#lib/format";
 import { m } from "#lib/i18n";
 
 /** Download counts and storage used, with "retry all" when something failed. */
-export function TaskSummary({ onRetryAll }: { onRetryAll: () => void }) {
-  const { data } = useQuery({ ...mediaStatsQuery, refetchInterval: 10_000 });
+export function TaskSummary({ live, onRetryAll }: { live: boolean; onRetryAll: () => void }) {
+  const { data } = useQuery({ ...mediaStatsQuery, refetchInterval: live ? 5000 : false });
   if (!data) return <div className="h-[76px]" />;
 
   return (

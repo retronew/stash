@@ -6,9 +6,11 @@ import type {
   Account,
   AttachmentKind,
   AttachmentStatus,
+  ChatType,
   EventOutcome,
   EventPage,
   EventStats,
+  EventTypeCount,
   MediaStats,
   MediaTaskDetail,
   MediaTaskPage,
@@ -16,6 +18,18 @@ import type {
   WebhookEventDetail,
 } from "@stash/shared";
 import { api } from "#lib/api";
+
+type Param = string | number | boolean | readonly string[] | undefined | null;
+
+/** path?k=v&…, leaving out empty values; lists become comma-separated, booleans 1 / 0. */
+function listUrl(path: string, params: Record<string, Param>): string {
+  const search = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0)) continue;
+    search.set(k, Array.isArray(v) ? v.join(",") : typeof v === "boolean" ? (v ? "1" : "0") : String(v));
+  }
+  return `${path}?${search}`;
+}
 
 export interface AllowedEmails {
   owners: string[];
@@ -28,28 +42,28 @@ export interface AccountList {
   accounts: Account[];
 }
 
+/** Message feed filters; empty lists mean "any". */
 export interface MessageFilters {
-  account?: string;
-  /** Only messages with attachments. */
-  media?: boolean;
-  status?: AttachmentStatus;
-}
-
-const PAGE_SIZE = 30;
-
-function messagesUrl(filters: MessageFilters, before: number | null): string {
-  const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
-  if (before) params.set("before", String(before));
-  if (filters.account) params.set("account", filters.account);
-  if (filters.media) params.set("media", "1");
-  if (filters.status) params.set("status", filters.status);
-  return `/api/messages?${params}`;
+  accounts: string[];
+  chatTypes: ChatType[];
+  /** all, only messages with files, or only those with a failed download. */
+  media: "all" | "media" | "failed";
 }
 
 export const messagesQuery = (filters: MessageFilters) =>
   infiniteQueryOptions({
     queryKey: ["messages", filters],
-    queryFn: ({ pageParam }) => api<MessagePage>(messagesUrl(filters, pageParam)),
+    queryFn: ({ pageParam }) =>
+      api<MessagePage>(
+        listUrl("/api/messages", {
+          account: filters.accounts,
+          chat: filters.chatTypes,
+          media: filters.media === "media" ? true : undefined,
+          status: filters.media === "failed" ? "failed" : undefined,
+          before: pageParam,
+          limit: 30,
+        }),
+      ),
     initialPageParam: null as number | null,
     getNextPageParam: (last) => last.nextCursor,
   });
@@ -69,27 +83,28 @@ export const allowedEmailsQuery = queryOptions({
   queryFn: () => api<AllowedEmails>("/api/settings/allowed-emails"),
 });
 
+/** Event log filters; empty lists mean "any". */
 export interface EventFilters {
-  account?: string;
-  /** true: hits, false: misses. */
-  hit?: boolean;
-  outcome?: EventOutcome;
-}
-
-function listUrl(path: string, params: Record<string, string | number | boolean | undefined | null>): string {
-  const search = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v === undefined || v === null || v === "") continue;
-    search.set(k, typeof v === "boolean" ? (v ? "1" : "0") : String(v));
-  }
-  return `${path}?${search}`;
+  accounts: string[];
+  hit: "all" | "hit" | "miss";
+  outcomes: EventOutcome[];
+  types: string[];
 }
 
 export const eventsQuery = (filters: EventFilters) =>
   infiniteQueryOptions({
     queryKey: ["events", filters],
     queryFn: ({ pageParam }) =>
-      api<EventPage>(listUrl("/api/events", { ...filters, before: pageParam, limit: 50 })),
+      api<EventPage>(
+        listUrl("/api/events", {
+          account: filters.accounts,
+          hit: filters.hit === "all" ? undefined : filters.hit === "hit",
+          outcome: filters.outcomes,
+          type: filters.types,
+          before: pageParam,
+          limit: 50,
+        }),
+      ),
     initialPageParam: null as number | null,
     getNextPageParam: (last) => last.nextCursor,
   });
@@ -107,17 +122,26 @@ export const eventDetailQuery = (id: number) =>
     staleTime: Infinity,
   });
 
+/** Task queue filters; empty lists mean "any". */
 export interface TaskFilters {
-  account?: string;
-  status?: AttachmentStatus;
-  kind?: AttachmentKind;
+  accounts: string[];
+  statuses: AttachmentStatus[];
+  kinds: AttachmentKind[];
 }
 
 export const tasksQuery = (filters: TaskFilters) =>
   infiniteQueryOptions({
     queryKey: ["media", "tasks", filters],
     queryFn: ({ pageParam }) =>
-      api<MediaTaskPage>(listUrl("/api/media/tasks", { ...filters, before: pageParam, limit: 50 })),
+      api<MediaTaskPage>(
+        listUrl("/api/media/tasks", {
+          account: filters.accounts,
+          status: filters.statuses,
+          kind: filters.kinds,
+          before: pageParam,
+          limit: 50,
+        }),
+      ),
     initialPageParam: null as number | null,
     getNextPageParam: (last) => last.nextCursor,
   });
@@ -127,6 +151,11 @@ export const taskDetailQuery = (id: number) =>
     queryKey: ["media", "tasks", "detail", id],
     queryFn: () => api<MediaTaskDetail>(`/api/media/tasks/${id}`),
   });
+
+export const eventTypesQuery = queryOptions({
+  queryKey: ["events", "types"],
+  queryFn: () => api<EventTypeCount[]>("/api/events/types"),
+});
 
 export const apiTokenQuery = queryOptions({
   queryKey: ["settings", "api-token"],

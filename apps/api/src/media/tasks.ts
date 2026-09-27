@@ -1,5 +1,6 @@
 import type { AttachmentKind, AttachmentStatus, MediaTask, MediaTaskDetail, MediaTaskPage, Platform } from "@stash/shared";
 import { toAttachment, type AttachmentRow } from "#media/attachments";
+import { inClause } from "#params";
 
 // Attachments as download tasks, joined with their message, for the task queue page.
 
@@ -32,9 +33,9 @@ const SELECT = `SELECT a.*, m.account_id, m.platform, m.sender_name, m.text
 export interface TaskFilter {
   before?: number;
   limit: number;
-  status?: AttachmentStatus;
-  kind?: AttachmentKind;
-  accountId?: string;
+  statuses?: AttachmentStatus[];
+  kinds?: AttachmentKind[];
+  accountIds?: string[];
 }
 
 /** Newest first; a stable id cursor. */
@@ -45,18 +46,9 @@ export async function listTasks(db: D1Database, filter: TaskFilter): Promise<Med
     where.push("a.id < ?");
     params.push(filter.before);
   }
-  if (filter.status) {
-    where.push("a.status = ?");
-    params.push(filter.status);
-  }
-  if (filter.kind) {
-    where.push("a.kind = ?");
-    params.push(filter.kind);
-  }
-  if (filter.accountId) {
-    where.push("m.account_id = ?");
-    params.push(filter.accountId);
-  }
+  if (filter.statuses?.length) where.push(inClause("a.status", filter.statuses, params));
+  if (filter.kinds?.length) where.push(inClause("a.kind", filter.kinds, params));
+  if (filter.accountIds?.length) where.push(inClause("m.account_id", filter.accountIds, params));
   const { results } = await db
     .prepare(`${SELECT} ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY a.id DESC LIMIT ?`)
     .bind(...params, filter.limit + 1)

@@ -1,10 +1,7 @@
-import type { AttachmentKind, AttachmentStatus, ChatType, EventOutcome, Platform } from "@stash/shared";
+import type { Account, AttachmentKind, AttachmentStatus, ChatType, EventOutcome, Platform } from "@stash/shared";
 import type { BadgeProps } from "#components/ui/badge";
 import { m } from "#lib/i18n";
-
-const PLATFORM_LABELS: Record<Platform, () => string> = {
-  qq: () => m.platform_qq(),
-};
+import { platformInfo } from "#lib/platforms";
 
 const CHAT_TYPE_LABELS: Record<ChatType, () => string> = {
   c2c: () => m.chat_c2c(),
@@ -52,10 +49,13 @@ const KIND_LABELS: Record<AttachmentKind, () => string> = {
   file: () => m.kind_file(),
 };
 
-export const platformLabel = (platform: Platform) => PLATFORM_LABELS[platform]?.() ?? platform;
+export const platformLabel = (platform: Platform) => platformInfo(platform)?.label() ?? platform;
 export const chatTypeLabel = (type: ChatType) => CHAT_TYPE_LABELS[type]?.() ?? type;
 export const outcomeLabel = (o: EventOutcome) => OUTCOME_LABELS[o]?.() ?? o;
 export const outcomeVariant = (o: EventOutcome) => OUTCOME_VARIANTS[o] ?? "outline";
 export const statusLabel = (s: AttachmentStatus) => STATUS_LABELS[s]?.() ?? s;
 export const statusVariant = (s: AttachmentStatus) => STATUS_VARIANTS[s] ?? "outline";
 export const kindLabel = (k: AttachmentKind) => KIND_LABELS[k]?.() ?? k;
+
+/** A bot's display name: its name, else its credential id, else a short id. */
+export const accountLabel = (a: Pick<Account, "name" | "appId" | "id">) => a.name || a.appId || a.id.slice(0, 8);

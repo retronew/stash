@@ -5,7 +5,7 @@ import { Button } from "#components/ui/button";
 import { CopyButton } from "#components/CopyButton";
 import { AvatarPicker } from "#components/settings/accounts/AvatarPicker";
 import { webhookUrl } from "#hooks/useAccounts";
-import { platformLabel } from "#lib/labels";
+import { platformInfo } from "#lib/platforms";
 import { formatDateTime, formatRelative } from "#lib/format";
 import { m } from "#lib/i18n";
 
@@ -20,6 +20,7 @@ interface Props {
 
 export function AccountRow({ account, origin, onEdit, onDelete, onUploadAvatar, onRemoveAvatar }: Props) {
   const url = webhookUrl(origin, account);
+  const platform = platformInfo(account.platform);
   return (
     <div className="space-y-3 rounded-xl border p-4">
       <div className="flex items-center gap-3">
@@ -27,7 +28,7 @@ export function AccountRow({ account, origin, onEdit, onDelete, onUploadAvatar, 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="truncate font-medium">{account.name || account.appId}</span>
-            <Badge variant="secondary">{platformLabel(account.platform)}</Badge>
+            <Badge variant="secondary">{platform.label()}</Badge>
             {account.enabled ? (
               <Badge variant="success">{m.account_enabled()}</Badge>
             ) : (
@@ -59,9 +60,9 @@ export function AccountRow({ account, origin, onEdit, onDelete, onUploadAvatar, 
         </div>
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-lg bg-muted/50 px-3 py-2 text-xs">
-        <dt className="text-muted-foreground">App ID</dt>
+        <dt className="text-muted-foreground">{platform.credentials.id()}</dt>
         <dd className="truncate font-mono">{account.appId}</dd>
-        <dt className="text-muted-foreground">App Secret</dt>
+        <dt className="text-muted-foreground">{platform.credentials.secret()}</dt>
         <dd className="truncate font-mono">{account.appSecretMasked || "—"}</dd>
         <dt className="self-center text-muted-foreground">{m.account_webhook_url()}</dt>
         <dd className="flex min-w-0 items-center gap-1">

@@ -8,16 +8,20 @@ export function isPlatform(value: unknown): value is Platform {
   return typeof value === "string" && (PLATFORMS as readonly string[]).includes(value);
 }
 
-/** c2c: one-to-one with the bot; group / channel: a message in a group or channel; dm: channel direct message. */
-export type ChatType = "c2c" | "group" | "channel" | "dm";
+export const CHAT_TYPES = ["c2c", "group", "channel", "dm"] as const;
 
-export type AttachmentKind = "image" | "video" | "audio" | "file";
+/** c2c: one-to-one with the bot; group / channel: a message in a group or channel; dm: channel direct message. */
+export type ChatType = (typeof CHAT_TYPES)[number];
+
+export const ATTACHMENT_KINDS = ["image", "video", "audio", "file"] as const;
+export type AttachmentKind = (typeof ATTACHMENT_KINDS)[number];
 
 /**
  * pending: waiting in the queue (or for a retry); downloading: a consumer has it;
  * stored: in R2; failed: gave up after the last retry (can be retried by hand).
  */
-export type AttachmentStatus = "pending" | "downloading" | "stored" | "failed";
+export const ATTACHMENT_STATUSES = ["pending", "downloading", "stored", "failed"] as const;
+export type AttachmentStatus = (typeof ATTACHMENT_STATUSES)[number];
 
 /** A bot account on a platform, as the settings page sees it (the secret is masked). */
 export interface Account {
@@ -87,7 +91,8 @@ export interface MediaStats {
  * What became of one webhook call. stored / duplicate are hits (the event
  * was a message); the rest are misses.
  */
-export type EventOutcome = "stored" | "duplicate" | "ignored" | "validation" | "rejected" | "error";
+export const EVENT_OUTCOMES = ["stored", "duplicate", "ignored", "validation", "rejected", "error"] as const;
+export type EventOutcome = (typeof EVENT_OUTCOMES)[number];
 
 export const HIT_OUTCOMES: readonly EventOutcome[] = ["stored", "duplicate"];
 
@@ -106,6 +111,13 @@ export interface WebhookEvent {
 export interface WebhookEventDetail extends WebhookEvent {
   /** The request body (cut to 16 KB). */
   raw: string;
+}
+
+/** How often an event type appears in the log, for the event-type filter. */
+export interface EventTypeCount {
+  platform: Platform;
+  type: string;
+  count: number;
 }
 
 export interface EventPage {

@@ -1,24 +1,28 @@
 import { PlusIcon } from "lucide-react";
-import type { Account } from "@stash/shared";
+import type { Account, Platform } from "@stash/shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#components/ui/card";
 import { Button } from "#components/ui/button";
 import { Confirm } from "#components/Confirm";
 import { ListSkeleton } from "#components/settings/skeletons";
 import { AccountRow } from "#components/settings/accounts/AccountRow";
 import { AccountFormDialog } from "#components/settings/accounts/AccountFormDialog";
+import { PlatformGuide } from "#components/settings/accounts/PlatformGuide";
 import { useAccounts } from "#hooks/useAccounts";
+import { platformList } from "#lib/platforms";
 import { errorMessage, toastError, toastSuccess } from "#lib/api";
 import { m } from "#lib/i18n";
 
-/** QQ bots Stash receives from, with the webhook URL to paste into the QQ console. */
+/** The bots Stash receives from, on every platform, with their webhook URLs. */
 export function AccountsCard() {
   const { accounts, origin, error, create, update, remove, uploadAvatar, removeAvatar } = useAccounts();
+  const platforms = platformList();
 
-  async function edit(account: Account | null) {
+  async function edit(account: Account | null, platform: Platform = account?.platform ?? platforms[0].id) {
     const saved = await AccountFormDialog.call({
       account,
+      platform,
       origin,
-      onSubmit: (payload) => (account ? update(account.id, payload) : create("qq", payload)),
+      onSubmit: (payload) => (account ? update(account.id, payload) : create(platform, payload)),
     });
     if (saved) toastSuccess(m.account_saved(), { id: "account-save" });
   }
@@ -59,15 +63,17 @@ export function AccountsCard() {
             onRemoveAvatar={() => removeAvatar(a.id)}
           />
         ))}
-        <Button variant="outline" onClick={() => edit(null)}>
-          <PlusIcon />
-          {m.account_add()}
-        </Button>
-        <ol className="list-decimal space-y-1 ps-5 text-muted-foreground text-xs">
-          <li>{m.accounts_step_create()}</li>
-          <li>{m.accounts_step_webhook()}</li>
-          <li>{m.accounts_step_events()}</li>
-        </ol>
+        <div className="flex flex-wrap gap-2">
+          {platforms.map((p) => (
+            <Button key={p.id} variant="outline" onClick={() => edit(null, p.id)}>
+              <PlusIcon />
+              {m.account_add({ platform: p.label() })}
+            </Button>
+          ))}
+        </div>
+        {platforms.map((p) => (
+          <PlatformGuide key={p.id} platform={p} />
+        ))}
       </CardContent>
       <AccountFormDialog />
     </Card>

@@ -7,7 +7,7 @@ import { Button } from "#components/ui/button";
 import { CopyButton } from "#components/CopyButton";
 import { DetailList } from "#components/DetailList";
 import { PageLoading } from "#components/PageLoading";
-import { accountLabel } from "#components/AccountSelect";
+import { accountLabel } from "#lib/labels";
 import { useEntered } from "#hooks/useEntered";
 import { eventDetailQuery } from "#lib/queries";
 import { outcomeLabel, outcomeVariant, platformLabel } from "#lib/labels";

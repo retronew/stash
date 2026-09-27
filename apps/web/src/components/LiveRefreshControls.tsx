@@ -1,0 +1,52 @@
+import { RefreshCwIcon } from "lucide-react";
+import { Button } from "#components/ui/button";
+import { Switch } from "#components/ui/switch";
+import { Label } from "#components/ui/label";
+import { cn } from "#lib/utils";
+import { intlLocale, m } from "#lib/i18n";
+
+const clock = new Intl.DateTimeFormat(intlLocale(), {
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+});
+
+/** Live (auto) refresh toggle, a manual refresh and the last update time; shared by pages that poll. */
+export function LiveRefreshControls({
+  live,
+  onLiveChange,
+  onRefresh,
+  refreshing,
+  updatedAt,
+}: {
+  live: boolean;
+  onLiveChange: (live: boolean) => void;
+  onRefresh: () => void;
+  refreshing: boolean;
+  updatedAt: number | null;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+      {updatedAt && (
+        <span className="hidden text-muted-foreground text-xs sm:inline">
+          {m.refresh_updated_at({ time: clock.format(updatedAt) })}
+        </span>
+      )}
+      <Label className="flex items-center gap-2 text-sm">
+        <Switch checked={live} onCheckedChange={onLiveChange} />
+        {m.refresh_live()}
+        {live && (
+          <span className="relative flex size-2" aria-hidden>
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-75" />
+            <span className="relative inline-flex size-2 rounded-full bg-success" />
+          </span>
+        )}
+      </Label>
+      <Button variant="outline" size="sm" onClick={onRefresh} disabled={refreshing} aria-label={m.refresh_now()} className="max-sm:size-8 max-sm:px-0">
+        <RefreshCwIcon className={cn(refreshing && "animate-spin")} />
+        <span className="max-sm:sr-only">{m.refresh_now()}</span>
+      </Button>
+    </div>
+  );
+}

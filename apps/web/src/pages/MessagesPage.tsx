@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router";
 import type { Message } from "@stash/shared";
 import { LoadMoreButton } from "#components/LoadMoreButton";
@@ -8,17 +7,17 @@ import { Confirm } from "#components/Confirm";
 import { MessageCard } from "#components/messages/MessageCard";
 import { MediaViewer } from "#components/messages/MediaViewer";
 import { MediaStatsBar } from "#components/messages/MediaStatsBar";
-import { MessagesFilterBar, filtersFor, type MessageView } from "#components/messages/MessagesFilterBar";
+import { EMPTY_MESSAGE_FILTERS, MessagesFilterBar } from "#components/messages/MessagesFilterBar";
+import { useFilterState } from "#hooks/useFilterState";
 import { useMessages } from "#hooks/useMessages";
 import { useAccounts } from "#hooks/useAccounts";
 import { errorMessage } from "#lib/api";
 import { m } from "#lib/i18n";
 
 export function MessagesPage() {
-  const [view, setView] = useState<MessageView>("all");
-  const [account, setAccount] = useState("");
+  const { filters, set, clear, filtered } = useFilterState(EMPTY_MESSAGE_FILTERS);
   const { accounts } = useAccounts();
-  const feed = useMessages(filtersFor(view, account));
+  const feed = useMessages(filters);
   const accountById = new Map((accounts ?? []).map((a) => [a.id, a]));
 
   async function confirmDelete(message: Message) {
@@ -37,13 +36,7 @@ export function MessagesPage() {
         <h1 className="font-heading text-lg font-semibold">{m.nav_messages()}</h1>
         <MediaStatsBar />
       </div>
-      <MessagesFilterBar
-        view={view}
-        onViewChange={setView}
-        account={account}
-        onAccountChange={setAccount}
-        accounts={accounts ?? []}
-      />
+      <MessagesFilterBar filters={filters} onChange={set} onClear={clear} accounts={accounts ?? []} />
 
       {feed.isLoading ? (
         <PageLoading />
@@ -52,9 +45,11 @@ export function MessagesPage() {
       ) : feed.messages.length === 0 ? (
         <Empty className="animate-fade-in">
           <EmptyHeader>
-            <EmptyTitle>{m.messages_empty()}</EmptyTitle>
+            <EmptyTitle>{filtered ? m.list_empty_filtered() : m.messages_empty()}</EmptyTitle>
             <EmptyDescription>
-              {accounts?.length === 0 ? (
+              {filtered ? (
+                m.list_empty_filtered_hint()
+              ) : accounts?.length === 0 ? (
                 <>
                   {m.messages_empty_no_account()}{" "}
                   <Link to="/settings" className="underline underline-offset-4">
