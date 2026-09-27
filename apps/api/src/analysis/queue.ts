@@ -57,7 +57,7 @@ export type QueueScope = "unanalyzed" | "failed" | "all";
 export async function queueByScope(env: Env, scope: QueueScope, limit = 1000): Promise<number> {
   const where =
     scope === "unanalyzed" ? "ai_status = ''" : scope === "failed" ? "ai_status = 'failed'" : "ai_status != 'running'";
-  const { results } = await env.DB.prepare(`SELECT id FROM messages WHERE ${where} ORDER BY id DESC LIMIT ?`)
+  const { results } = await env.DB.prepare(`SELECT id FROM messages WHERE ${where} AND deleted_at IS NULL ORDER BY id DESC LIMIT ?`)
     .bind(limit)
     .all<{ id: number }>();
   return (await requestAnalysis(env, results.map((r) => r.id))).length;

@@ -32,13 +32,14 @@ interface MessageRow {
   fields: string;
   ai_status: AnalysisStatus;
   ai_error: string;
+  deleted_at: number | null;
 }
 
 /** Columns of a message for display (everything but the raw payload and vectors). */
 export function messageColumns(alias = "m"): string {
   return [
     "id", "account_id", "platform", "chat_type", "chat_id", "sender_id", "sender_name", "text", "sent_at",
-    "received_at", "category", "tags", "summary", "ocr_text", "fields", "ai_status", "ai_error",
+    "received_at", "category", "tags", "summary", "ocr_text", "fields", "ai_status", "ai_error", "deleted_at",
   ]
     .map((c) => `${alias}.${c}`)
     .join(", ");
@@ -62,6 +63,8 @@ export interface MessageQuery {
   until?: number;
   /** Only messages with an attachment in this state. */
   status?: AttachmentStatus;
+  /** The recycle bin instead of the live messages. */
+  trash?: boolean;
 }
 
 export interface MessageFilter extends MessageQuery {
@@ -72,7 +75,7 @@ export interface MessageFilter extends MessageQuery {
 
 /** WHERE conditions on `messages m` for a query; pushes their values onto `params`. */
 export function messageWhere(q: MessageQuery, params: unknown[]): string[] {
-  const where: string[] = [];
+  const where: string[] = [q.trash ? "m.deleted_at IS NOT NULL" : "m.deleted_at IS NULL"];
   if (q.platforms?.length) where.push(inClause("m.platform", q.platforms, params));
   if (q.accountIds?.length) where.push(inClause("m.account_id", q.accountIds, params));
   if (q.chatTypes?.length) where.push(inClause("m.chat_type", q.chatTypes, params));
@@ -174,6 +177,7 @@ function toMessage(row: MessageRow, attachments: AttachmentRow[]): Message {
     fields: parseFields(row.fields),
     aiStatus: row.ai_status,
     aiError: row.ai_error,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -232,20 +236,65 @@ export async function updateMessageLabels(db: D1Database, id: number, labels: { 
 /** Categories in use, with counts, most used first. */
 export async function categoryCounts(db: D1Database): Promise<{ category: string; count: number }[]> {
   const { results } = await db
-    .prepare("SELECT category, COUNT(*) AS count FROM messages WHERE category != '' GROUP BY category ORDER BY count DESC")
+    .prepare("SELECT category, COUNT(*) AS count FROM messages WHERE category != '' AND deleted_at IS NULL GROUP BY category ORDER BY count DESC")
     .all<{ category: string; count: number }>();
   return results;
 }
 
-/** Deletes a message, its attachment rows and their files in R2. False if it didn't exist. */
-export async function deleteMessage(db: D1Database, bucket: R2Bucket, id: number): Promise<boolean> {
+/** Moves messages to the recycle bin; returns how many were live. */
+export async function trashMessages(db: D1Database, ids: number[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const res = await db
+    .prepare(`UPDATE messages SET deleted_at = ? WHERE deleted_at IS NULL AND id IN (${ids.map(() => "?").join(",")})`)
+    .bind(Date.now(), ...ids)
+    .run();
+  return res.meta.changes ?? 0;
+}
+
+/** Takes messages back out of the recycle bin; returns how many. */
+export async function restoreMessages(db: D1Database, ids: number[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const res = await db
+    .prepare(`UPDATE messages SET deleted_at = NULL WHERE deleted_at IS NOT NULL AND id IN (${ids.map(() => "?").join(",")})`)
+    .bind(...ids)
+    .run();
+  return res.meta.changes ?? 0;
+}
+
+/** R2 deletes at most 1000 keys per call; D1 binds at most 100 values. */
+const PURGE_CHUNK = 100;
+
+/**
+ * Deletes messages in the recycle bin for good: rows (attachments cascade)
+ * and their files in R2. Live messages are left alone. Returns how many.
+ */
+export async function purgeMessages(db: D1Database, bucket: R2Bucket, ids: number[]): Promise<number> {
+  let purged = 0;
+  for (let i = 0; i < ids.length; i += PURGE_CHUNK) {
+    const chunk = ids.slice(i, i + PURGE_CHUNK);
+    const list = chunk.map(() => "?").join(",");
+    const { results } = await db
+      .prepare(
+        `SELECT a.r2_key FROM attachments a JOIN messages m ON m.id = a.message_id
+         WHERE m.deleted_at IS NOT NULL AND m.id IN (${list}) AND a.r2_key IS NOT NULL`,
+      )
+      .bind(...chunk)
+      .all<{ r2_key: string }>();
+    // Files first: a row without its file is harmless, a file without its row is lost space.
+    if (results.length) await bucket.delete(results.map((r) => r.r2_key));
+    const res = await db.prepare(`DELETE FROM messages WHERE deleted_at IS NOT NULL AND id IN (${list})`).bind(...chunk).run();
+    purged += res.meta.changes ?? 0;
+  }
+  return purged;
+}
+
+/** Ids in the recycle bin, optionally only those deleted before a time. */
+export async function trashedIds(db: D1Database, before?: number, limit = 1000): Promise<number[]> {
   const { results } = await db
-    .prepare("SELECT r2_key FROM attachments WHERE message_id = ? AND r2_key IS NOT NULL")
-    .bind(id)
-    .all<{ r2_key: string }>();
-  if (results.length) await bucket.delete(results.map((r) => r.r2_key));
-  const res = await db.prepare("DELETE FROM messages WHERE id = ?").bind(id).run();
-  return res.meta.changes > 0;
+    .prepare(`SELECT id FROM messages WHERE deleted_at IS NOT NULL AND deleted_at < ? ORDER BY deleted_at LIMIT ?`)
+    .bind(before ?? Number.MAX_SAFE_INTEGER, limit)
+    .all<{ id: number }>();
+  return results.map((r) => r.id);
 }
 
 /** Every conversation with its message count, most recent first. */
@@ -256,7 +305,7 @@ export async function listChats(db: D1Database): Promise<ChatSummary[]> {
          COUNT(*) AS messages, MAX(sent_at) AS lastAt,
          -- A direct chat is named after the person; groups have no name in the payload.
          MAX(CASE WHEN chat_type IN ('c2c', 'dm') THEN sender_name ELSE '' END) AS name
-       FROM messages WHERE chat_id != ''
+       FROM messages WHERE chat_id != '' AND deleted_at IS NULL
        GROUP BY account_id, platform, chat_type, chat_id
        ORDER BY lastAt DESC LIMIT 500`,
     )

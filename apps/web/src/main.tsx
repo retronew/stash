@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import "./index.css";
 import { AppShell } from "#AppShell";
 import { MessagesPage } from "#pages/MessagesPage";
+import { TrashPage } from "./pages/TrashPage";
 import { SettingsPage } from "#pages/SettingsPage";
 import { TasksPage } from "#pages/TasksPage";
 import { EventsPage } from "#pages/EventsPage";
@@ -26,6 +27,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/" element={<MessagesPage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/events" element={<EventsPage />} />
+          <Route path="/trash" element={<TrashPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

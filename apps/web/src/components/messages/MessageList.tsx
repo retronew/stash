@@ -5,6 +5,7 @@ import { MediaViewer } from "#components/messages/MediaViewer";
 import { EditLabelsDialog } from "#components/messages/EditLabelsDialog";
 import { Confirm } from "#components/Confirm";
 import { m } from "#lib/i18n";
+import { MessageMenuItems } from "#components/messages/MessageMenuItems";
 
 export interface MessageActions {
   remove: (id: number) => Promise<void>;
@@ -23,7 +24,7 @@ interface Props {
   children?: ReactNode;
 }
 
-/** Message cards with their actions (delete, retry downloads, analyze, edit labels). */
+/** Message cards with their actions (retry downloads, analyze, edit labels, move to the recycle bin). */
 export function MessageList({ messages, accounts, categories, actions, children }: Props) {
   const accountById = new Map(accounts.map((a) => [a.id, a]));
 
@@ -46,10 +47,15 @@ export function MessageList({ messages, accounts, categories, actions, children 
           account={accountById.get(msg.accountId)}
           onOpen={(attachment) => MediaViewer.call({ attachment })}
           onRetry={(id) => actions.retry([id])}
-          onDelete={confirmDelete}
-          onAnalyze={(message) => actions.analyze(message.id)}
-          onEditLabels={(message) =>
-            EditLabelsDialog.call({ message, categories, onSave: (labels) => actions.setLabels(message.id, labels) })
+          menu={
+            <MessageMenuItems
+              message={msg}
+              onAnalyze={() => actions.analyze(msg.id)}
+              onEditLabels={() =>
+                EditLabelsDialog.call({ message: msg, categories, onSave: (labels) => actions.setLabels(msg.id, labels) })
+              }
+              onDelete={() => confirmDelete(msg)}
+            />
           }
         />
       ))}

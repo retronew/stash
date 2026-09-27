@@ -29,14 +29,30 @@ export function useMessages(filters: MessageFilters) {
       queryClient.invalidateQueries({ queryKey: ["analysis"] }),
     ]);
 
+  /** Moves a message to the recycle bin, with an undo, as in PickIt. */
   async function remove(id: number) {
     try {
       await api(`/api/messages/${id}`, { method: "DELETE" });
-      toastSuccess(m.message_deleted(), { id: "message-delete" });
-      await refresh();
     } catch (err) {
       toastError(m.message_delete_failed(), err, { id: "message-delete" });
+      return;
     }
+    toastSuccess(m.moved_to_trash(), {
+      id: "message-delete",
+      action: {
+        label: m.undo(),
+        onClick: async () => {
+          try {
+            await api(`/api/messages/${id}/restore`, { method: "POST" });
+            toastSuccess(m.restored(), { id: "message-delete" });
+          } catch (err) {
+            toastError(m.restore_failed(), err, { id: "message-delete" });
+          }
+          await refresh();
+        },
+      },
+    });
+    await refresh();
   }
 
   /** Queues one message for (re-)analysis. */

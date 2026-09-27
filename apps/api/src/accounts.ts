@@ -52,7 +52,7 @@ export function isValidWebhookKey(key: string): boolean {
 export async function listAccounts(db: D1Database): Promise<BotAccountRow[]> {
   const { results } = await db
     .prepare(
-      `SELECT b.*, (SELECT COUNT(*) FROM messages m WHERE m.account_id = b.id) AS message_count
+      `SELECT b.*, (SELECT COUNT(*) FROM messages m WHERE m.account_id = b.id AND m.deleted_at IS NULL) AS message_count
        FROM bot_accounts b ORDER BY b.created_at`,
     )
     .all<BotAccountRow>();

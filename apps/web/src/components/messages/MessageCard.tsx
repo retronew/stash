@@ -1,9 +1,10 @@
-import { EllipsisIcon, SparklesIcon, TagIcon, Trash2Icon } from "lucide-react";
+import type { ReactNode } from "react";
+import { EllipsisIcon } from "lucide-react";
 import type { Account, Attachment, Message } from "@stash/shared";
 import { Card } from "#components/ui/card";
 import { Badge } from "#components/ui/badge";
 import { Button } from "#components/ui/button";
-import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "#components/ui/menu";
+import { Menu, MenuPopup, MenuTrigger } from "#components/ui/menu";
 import { AttachmentTile } from "#components/messages/AttachmentTile";
 import { MessageInsights } from "#components/messages/MessageInsights";
 import { BotAvatar } from "#components/BotAvatar";
@@ -16,13 +17,11 @@ interface Props {
   account: Account | undefined;
   onOpen: (attachment: Attachment) => void;
   onRetry: (id: number) => void;
-  onDelete: (message: Message) => void;
-  onAnalyze: (message: Message) => void;
-  onEditLabels: (message: Message) => void;
+  /** The "⋯" menu's items (they differ in the recycle bin). */
+  menu: ReactNode;
 }
 
-export function MessageCard({ message, account, onOpen, onRetry, onDelete, onAnalyze, onEditLabels }: Props) {
-  const busy = message.aiStatus === "pending" || message.aiStatus === "running";
+export function MessageCard({ message, account, onOpen, onRetry, menu }: Props) {
   return (
     <Card className="gap-3 p-4 shadow-none before:shadow-none dark:before:shadow-none">
       <div className="flex items-center gap-2 text-sm">
@@ -42,19 +41,7 @@ export function MessageCard({ message, account, onOpen, onRetry, onDelete, onAna
             <EllipsisIcon />
           </MenuTrigger>
           <MenuPopup align="end">
-            <MenuItem disabled={busy} onClick={() => onAnalyze(message)}>
-              <SparklesIcon />
-              {message.aiStatus === "" ? m.message_analyze() : m.message_reanalyze()}
-            </MenuItem>
-            <MenuItem onClick={() => onEditLabels(message)}>
-              <TagIcon />
-              {m.message_edit_labels()}
-            </MenuItem>
-            <MenuSeparator />
-            <MenuItem variant="destructive" onClick={() => onDelete(message)}>
-              <Trash2Icon />
-              {m.action_delete()}
-            </MenuItem>
+            {menu}
           </MenuPopup>
         </Menu>
       </div>

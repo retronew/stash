@@ -29,7 +29,7 @@ analysisRoutes.get("/stats", async (c) => {
          SUM(ai_status = '') AS notAnalyzed,
          SUM(ai_at >= ?) AS today,
          SUM(vec IS NOT NULL) AS embedded
-       FROM messages`,
+       FROM messages WHERE deleted_at IS NULL`,
     )
       .bind(now - (now % DAY_MS))
       .first<Omit<AnalysisStats, "dailyLimit">>(),

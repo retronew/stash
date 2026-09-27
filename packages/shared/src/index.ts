@@ -109,6 +109,8 @@ export interface Message {
   fields: MessageFields;
   aiStatus: AnalysisStatus;
   aiError: string;
+  /** When it was moved to the recycle bin (null: not deleted). */
+  deletedAt: number | null;
 }
 
 /** A search result: a message and how well it matched (higher is better). */

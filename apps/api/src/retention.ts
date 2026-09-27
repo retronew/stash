@@ -1,12 +1,14 @@
 import { getSetting, setSetting } from "#settings";
+import { purgeMessages, trashedIds } from "#messages";
 
 // How long each kind of record is kept (days; 0 = forever), how much it
 // holds, and pruning. Run by the cron sweep and right after a setting changes.
 //
 // "tasks" only covers failed downloads: a saved attachment is part of its
-// message (and its file in R2), so it goes when the message is deleted.
+// message (and its file in R2), so it goes when the message is purged.
+// "trash" purges messages that sat in the recycle bin too long, files included.
 
-export const RETENTION_TARGETS = ["events", "tasks"] as const;
+export const RETENTION_TARGETS = ["events", "tasks", "trash"] as const;
 export type RetentionTarget = (typeof RETENTION_TARGETS)[number];
 
 export const MAX_RETENTION_DAYS = 3650;
@@ -39,6 +41,14 @@ const SPECS: Record<RetentionTarget, TargetSpec> = {
     where: "status = 'failed'",
     timeColumn: "updated_at",
     textBytes: "length(CAST(source_url AS BLOB)) + length(CAST(filename AS BLOB)) + length(CAST(last_error AS BLOB)) + length(kind) + length(content_type)",
+  },
+  trash: {
+    settingKey: "retention_trash_days",
+    defaultDays: 30,
+    table: "messages",
+    where: "deleted_at IS NOT NULL",
+    timeColumn: "deleted_at",
+    textBytes: "length(CAST(raw AS BLOB)) + length(CAST(text AS BLOB)) + length(CAST(summary AS BLOB)) + length(CAST(ocr_text AS BLOB)) + COALESCE(length(embedding), 0) + COALESCE(length(vec), 0)",
   },
 };
 
@@ -93,9 +103,13 @@ export async function retentionInfo(db: D1Database, target: RetentionTarget): Pr
 }
 
 /** Deletes rows older than the retention window; returns how many. */
-export async function prune(db: D1Database, target: RetentionTarget, days?: number): Promise<number> {
+export async function prune(db: D1Database, bucket: R2Bucket, target: RetentionTarget, days?: number): Promise<number> {
   const keep = days ?? (await getRetentionDays(db, target));
   if (keep === 0) return 0;
+  if (target === "trash") {
+    // Files in R2 go too, so this can't be a plain DELETE.
+    return purgeMessages(db, bucket, await trashedIds(db, Date.now() - keep * DAY_MS, 500));
+  }
   const s = SPECS[target];
   const res = await db
     .prepare(`DELETE FROM ${s.table} WHERE ${s.where} AND ${s.timeColumn} < ?`)
@@ -104,6 +118,6 @@ export async function prune(db: D1Database, target: RetentionTarget, days?: numb
   return res.meta.changes ?? 0;
 }
 
-export async function pruneAll(db: D1Database) {
-  for (const target of RETENTION_TARGETS) await prune(db, target);
+export async function pruneAll(db: D1Database, bucket: R2Bucket) {
+  for (const target of RETENTION_TARGETS) await prune(db, bucket, target);
 }

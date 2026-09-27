@@ -202,7 +202,7 @@ export const apiTokenQuery = queryOptions({
   queryFn: () => api<{ masked: string | null }>("/api/settings/api-token"),
 });
 
-export type RetentionTarget = "events" | "tasks";
+export type RetentionTarget = "events" | "tasks" | "trash";
 
 export interface RetentionStats {
   count: number;
@@ -286,3 +286,11 @@ export const searchQuery = (q: string, filters: MessageFilters) =>
       ),
     staleTime: 30_000,
   });
+
+/** The recycle bin, most recently received first. */
+export const trashQuery = infiniteQueryOptions({
+  queryKey: ["messages", "trash"],
+  queryFn: ({ pageParam }) => api<MessagePage>(listUrl("/api/messages", { trash: true, before: pageParam, limit: 30 })),
+  initialPageParam: null as number | null,
+  getNextPageParam: (last) => last.nextCursor,
+});

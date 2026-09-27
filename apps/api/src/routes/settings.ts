@@ -97,7 +97,7 @@ settingsRoutes.put("/retention/:target", async (c) => {
   const body = await c.req.json<{ days?: unknown }>().catch(() => ({}) as { days?: unknown });
   if (!isValidRetention(body.days)) return c.json({ error: `days must be 0–${MAX_RETENTION_DAYS}` }, 400);
   await setRetentionDays(c.env.DB, target, body.days);
-  const deleted = await prune(c.env.DB, target, body.days);
+  const deleted = await prune(c.env.DB, c.env.MEDIA, target, body.days);
   return c.json({ days: body.days, deleted, stats: await retentionStats(c.env.DB, target) });
 });
 

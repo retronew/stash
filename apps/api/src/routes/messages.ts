@@ -2,14 +2,24 @@ import { Hono } from "hono";
 import { cursorParam, limitParam } from "#params";
 import { messageQueryParams } from "#message-params";
 import type { Env } from "#types";
-import { categoryCounts, deleteMessage, getMessage, listChats, listMessages, updateMessageLabels } from "#messages";
+import {
+  categoryCounts,
+  getMessage,
+  listChats,
+  listMessages,
+  purgeMessages,
+  restoreMessages,
+  trashedIds,
+  trashMessages,
+  updateMessageLabels,
+} from "#messages";
 import { searchMessages } from "#search";
 
 export const messageRoutes = new Hono<{ Bindings: Env }>();
 
 /**
  * ?before=<id>&limit= plus the shared message filters (see message-params.ts):
- * q, platform, account, chat, since, until, media=1, status.
+ * q, platform, account, chat, since, until, media=1, status; trash=1 lists the recycle bin.
  */
 messageRoutes.get("/", async (c) => {
   const q = c.req.query();
@@ -49,7 +59,31 @@ messageRoutes.patch("/:id{[0-9]+}", async (c) => {
 /** The conversations seen so far, for the chat filter. */
 messageRoutes.get("/chats", async (c) => c.json(await listChats(c.env.DB)));
 
+/** Moves a message to the recycle bin; its files stay until it's purged. */
 messageRoutes.delete("/:id{[0-9]+}", async (c) => {
-  const ok = await deleteMessage(c.env.DB, c.env.MEDIA, Number(c.req.param("id")));
-  return ok ? c.json({ ok: true }) : c.json({ error: "not found" }, 404);
+  const n = await trashMessages(c.env.DB, [Number(c.req.param("id"))]);
+  return n ? c.json({ ok: true }) : c.json({ error: "not found" }, 404);
+});
+
+messageRoutes.post("/:id{[0-9]+}/restore", async (c) => {
+  const n = await restoreMessages(c.env.DB, [Number(c.req.param("id"))]);
+  return n ? c.json({ ok: true }) : c.json({ error: "not found" }, 404);
+});
+
+/** Deletes a message in the recycle bin for good, with its files in R2. */
+messageRoutes.delete("/:id{[0-9]+}/purge", async (c) => {
+  const n = await purgeMessages(c.env.DB, c.env.MEDIA, [Number(c.req.param("id"))]);
+  return n ? c.json({ ok: true }) : c.json({ error: "not found" }, 404);
+});
+
+/** Empties the recycle bin (in rounds, so a large bin fits one request's limits). */
+messageRoutes.post("/trash/empty", async (c) => {
+  let purged = 0;
+  for (let round = 0; round < 10; round++) {
+    const ids = await trashedIds(c.env.DB, undefined, 500);
+    if (ids.length === 0) break;
+    purged += await purgeMessages(c.env.DB, c.env.MEDIA, ids);
+  }
+  const left = (await trashedIds(c.env.DB, undefined, 1)).length > 0;
+  return c.json({ purged, done: !left });
 });

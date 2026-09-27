@@ -37,6 +37,7 @@ const msg = (over: Partial<Message> = {}): Message => ({
   fields: emptyFields(),
   aiStatus: "",
   aiError: "",
+  deletedAt: null,
   ...over,
 });
 

@@ -67,6 +67,7 @@ const TABS: SettingsTab[] = [
           <>
             <RetentionCard target="events" title={m.data_events_title()} description={m.data_events_description()} />
             <RetentionCard target="tasks" title={m.data_tasks_title()} description={m.data_tasks_description()} />
+            <RetentionCard target="trash" title={m.data_trash_title()} description={m.data_trash_description()} />
           </>
         }
       />
