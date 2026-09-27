@@ -1,6 +1,7 @@
 import type { Env } from "#types";
 import { enqueueDownloads, enqueueJobs } from "#media/jobs";
 import { MAX_ATTEMPTS } from "#media/retry";
+import { imagesWithoutThumbs } from "#media/thumbs";
 
 // Safety net, run by the cron trigger. Queues deliver at least once, but two
 // things can still strand an attachment: the enqueue after ingest failed, or
@@ -11,6 +12,15 @@ const STUCK_MS = 20 * 60_000;
 /** How long a pending row may sit (past its retry time) before we assume its queue message is lost. */
 const LOST_MS = 15 * 60_000;
 const BATCH = 200;
+
+/** Older images get thumbnails a few at a time, so the monthly Images quota isn't spent in one go. */
+const THUMB_BACKFILL = 20;
+
+/** Queues thumbnails for stored images that have none yet. */
+export async function sweepThumbs(env: Env) {
+  const ids = await imagesWithoutThumbs(env, THUMB_BACKFILL);
+  if (ids.length) await enqueueJobs(env, ids.map((attachmentId) => ({ kind: "thumb" as const, attachmentId })));
+}
 
 export async function sweepMedia(env: Env) {
   const now = Date.now();

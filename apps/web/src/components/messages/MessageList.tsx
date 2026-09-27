@@ -4,6 +4,8 @@ import { MessageCard } from "#components/messages/MessageCard";
 import { MediaViewer } from "#components/messages/MediaViewer";
 import { EditLabelsDialog } from "#components/messages/EditLabelsDialog";
 import { Confirm } from "#components/Confirm";
+import { WindowVirtualList } from "#components/WindowVirtualList";
+import { estimateMessageHeight } from "#lib/message-height";
 import { m } from "#lib/i18n";
 import { MessageMenuItems } from "#components/messages/MessageMenuItems";
 import type { MessageSelection } from "#hooks/useMessageSelection";
@@ -42,29 +44,36 @@ export function MessageList({ messages, accounts, categories, actions, selection
   }
 
   return (
-    <div className="grid animate-fade-in gap-3">
-      {messages.map((msg) => (
-        <MessageCard
-          key={msg.id}
-          message={msg}
-          account={accountById.get(msg.accountId)}
-          onOpen={(attachment) => MediaViewer.call({ attachment })}
-          onRetry={(id) => actions.retry([id])}
-          selectMode={selection?.selectMode}
-          selected={selection?.selectedIds.has(msg.id)}
-          onToggleSelect={selection?.toggle}
-          menu={
-            <MessageMenuItems
+    <div className="animate-fade-in">
+      {/* Only cards near the viewport are mounted, as in PickIt; spacing is padding inside each row. */}
+      <WindowVirtualList
+        rows={messages}
+        getKey={(msg) => String(msg.id)}
+        estimateSize={estimateMessageHeight}
+        renderRow={(msg) => (
+          <div className="pb-3">
+            <MessageCard
               message={msg}
-              onAnalyze={() => actions.analyze(msg.id)}
-              onEditLabels={() =>
-                EditLabelsDialog.call({ message: msg, categories, onSave: (labels) => actions.setLabels(msg.id, labels) })
+              account={accountById.get(msg.accountId)}
+              onOpen={(attachment) => MediaViewer.call({ attachment })}
+              onRetry={(id) => actions.retry([id])}
+              selectMode={selection?.selectMode}
+              selected={selection?.selectedIds.has(msg.id)}
+              onToggleSelect={selection?.toggle}
+              menu={
+                <MessageMenuItems
+                  message={msg}
+                  onAnalyze={() => actions.analyze(msg.id)}
+                  onEditLabels={() =>
+                    EditLabelsDialog.call({ message: msg, categories, onSave: (labels) => actions.setLabels(msg.id, labels) })
+                  }
+                  onDelete={() => confirmDelete(msg)}
+                />
               }
-              onDelete={() => confirmDelete(msg)}
             />
-          }
-        />
-      ))}
+          </div>
+        )}
+      />
       {children}
     </div>
   );

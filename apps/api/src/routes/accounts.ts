@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { isPlatform } from "@stash/shared";
 import type { Env } from "#types";
-import { thumbKey } from "#media/thumbs";
+import { derivedKeys } from "#media/thumbs";
 import { publicOrigin } from "#origin";
 import { adapterFor } from "#platforms/index";
 import {
@@ -96,7 +96,7 @@ accountRoutes.delete("/:id", async (c) => {
     .bind(c.req.param("id"))
     .all<{ id: number; r2_key: string; kind: string }>();
   const keys = [
-    ...results.flatMap((r) => (r.kind === "image" ? [r.r2_key, thumbKey(r.id)] : [r.r2_key])),
+    ...results.flatMap((r) => (r.kind === "image" ? [r.r2_key, ...derivedKeys(r.id)] : [r.r2_key])),
     avatarKey(c.req.param("id")),
   ];
   // R2 deletes at most 1000 keys per call.

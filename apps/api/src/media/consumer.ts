@@ -1,5 +1,6 @@
 import type { Env } from "#types";
-import { isAnalyzeJob, isEmbedJob, type MediaJob } from "#media/jobs";
+import { isAnalyzeJob, isEmbedJob, isThumbJob, type MediaJob } from "#media/jobs";
+import { makeThumbs } from "#media/thumbs";
 import { processEmbedJob } from "#analysis/embed";
 import { processAnalyzeJob } from "#analysis/consumer";
 import { analyzeWhenReady } from "#analysis/queue";
@@ -32,6 +33,10 @@ export async function queue(batch: MessageBatch<MediaJob>, env: Env) {
 }
 
 async function processOne(message: Message<MediaJob>, env: Env) {
+  if (message.body && isThumbJob(message.body)) {
+    await processThumbJob(message, env, message.body.attachmentId);
+    return;
+  }
   if (message.body && isEmbedJob(message.body)) {
     await processEmbedJob(message, env, message.body.ids.filter(Number.isInteger));
     return;
@@ -64,6 +69,8 @@ async function processOne(message: Message<MediaJob>, env: Env) {
     const stored = await downloadToR2(env.MEDIA, target);
     await markStored(env.DB, id, stored);
     message.ack();
+    // Before analysis, so the model gets the 1280px preview rather than a huge original.
+    if (target.kind === "image") await makeThumbs(env, id, stored.key);
     await analyzeWhenReady(env, target.message_id);
   } catch (err) {
     const error = err instanceof DownloadError ? err : new DownloadError(String(err), true);
@@ -85,6 +92,16 @@ async function processOne(message: Message<MediaJob>, env: Env) {
       message.retry({ delaySeconds: INFRA_RETRY_SECONDS });
     }
   }
+}
+
+/** Thumbnails for an older image (queued by the sweep). makeThumbs records failures itself. */
+async function processThumbJob(message: Message<MediaJob>, env: Env, id: number) {
+  const row = await env.DB.prepare("SELECT r2_key FROM attachments WHERE id = ? AND status = 'stored' AND thumb_status = ''")
+    .bind(id)
+    .first<{ r2_key: string }>()
+    .catch(() => null);
+  if (row) await makeThumbs(env, id, row.r2_key);
+  message.ack();
 }
 
 /** Messages the main queue gave up on (the consumer kept crashing): record them as failed. */

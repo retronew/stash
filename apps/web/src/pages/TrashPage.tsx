@@ -6,6 +6,8 @@ import { LoadMoreButton } from "#components/LoadMoreButton";
 import { Confirm } from "#components/Confirm";
 import { MediaViewer } from "#components/messages/MediaViewer";
 import { MessageCard } from "#components/messages/MessageCard";
+import { WindowVirtualList } from "#components/WindowVirtualList";
+import { estimateMessageHeight } from "#lib/message-height";
 import { TrashMenuItems } from "#components/messages/MessageMenuItems";
 import { useTrash } from "#hooks/useTrash";
 import { useMessageSelection } from "#hooks/useMessageSelection";
@@ -82,20 +84,26 @@ export function TrashPage() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="grid animate-fade-in gap-3">
-          {trash.messages.map((msg) => (
-            <MessageCard
-              key={msg.id}
-              message={msg}
-              account={accountById.get(msg.accountId)}
-              onOpen={(attachment) => MediaViewer.call({ attachment })}
-              onRetry={(id) => retry([id])}
-              selectMode={selection.selectMode}
-              selected={selection.selectedIds.has(msg.id)}
-              onToggleSelect={selection.toggle}
-              menu={<TrashMenuItems onRestore={() => trash.restore(msg.id)} onPurge={() => purge(msg.id)} />}
-            />
-          ))}
+        <div className="animate-fade-in">
+          <WindowVirtualList
+            rows={trash.messages}
+            getKey={(msg) => String(msg.id)}
+            estimateSize={estimateMessageHeight}
+            renderRow={(msg) => (
+              <div className="pb-3">
+                <MessageCard
+                  message={msg}
+                  account={accountById.get(msg.accountId)}
+                  onOpen={(attachment) => MediaViewer.call({ attachment })}
+                  onRetry={(id) => retry([id])}
+                  selectMode={selection.selectMode}
+                  selected={selection.selectedIds.has(msg.id)}
+                  onToggleSelect={selection.toggle}
+                  menu={<TrashMenuItems onRestore={() => trash.restore(msg.id)} onPurge={() => purge(msg.id)} />}
+                />
+              </div>
+            )}
+          />
           <LoadMoreButton hasMore={trash.hasMore} loading={trash.loadingMore} onLoadMore={trash.loadMore} />
         </div>
       )}

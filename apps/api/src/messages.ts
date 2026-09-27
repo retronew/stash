@@ -13,7 +13,7 @@ import {
 } from "@stash/shared";
 import { toAttachment, type AttachmentRow } from "#media/attachments";
 import { inClause } from "#params";
-import { thumbKey } from "#media/thumbs";
+import { derivedKeys } from "#media/thumbs";
 
 interface MessageRow {
   id: number;
@@ -327,7 +327,7 @@ export async function purgeMessages(db: D1Database, bucket: R2Bucket, ids: numbe
       .bind(...chunk)
       .all<{ id: number; r2_key: string; kind: string }>();
     // Files first: a row without its file is harmless, a file without its row is lost space.
-    const keys = results.flatMap((r) => (r.kind === "image" ? [r.r2_key, thumbKey(r.id)] : [r.r2_key]));
+    const keys = results.flatMap((r) => (r.kind === "image" ? [r.r2_key, ...derivedKeys(r.id)] : [r.r2_key]));
     if (keys.length) await bucket.delete(keys);
     const res = await db.prepare(`DELETE FROM messages WHERE deleted_at IS NOT NULL AND id IN (${list})`).bind(...chunk).run();
     purged += res.meta.changes ?? 0;

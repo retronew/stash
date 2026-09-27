@@ -7,12 +7,13 @@ import { getAnalysisSettings } from "#analysis/settings";
 import { analysisPrompt } from "#analysis/prompt";
 import { embeddingInput, parseAnalysis, type AnalysisResult } from "#analysis/parse";
 import { parseFields, parseTags } from "#messages";
+import { thumbKey } from "#media/thumbs";
 
 // One message's analysis: text and saved images to the chat model (JSON
 // back), then the vector for semantic search. Either model may be missing:
 // without chat, only the text is embedded; without embedding, no vector.
 
-/** Images larger than this aren't sent (base64 adds a third, and costs CPU and tokens). */
+/** Originals larger than this aren't sent when there's no preview (base64 adds a third, and costs CPU and tokens). */
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
@@ -31,6 +32,7 @@ interface Row {
 }
 
 interface FileRow {
+  id: number;
   kind: string;
   filename: string;
   status: string;
@@ -62,7 +64,7 @@ export async function analyzeMessage(env: Env, id: number): Promise<RunOutcome> 
     .first<Row>();
   if (!row) return "skipped";
   const { results: files } = await env.DB.prepare(
-    "SELECT kind, filename, status, content_type, stored_size, r2_key FROM attachments WHERE message_id = ? ORDER BY idx",
+    "SELECT id, kind, filename, status, content_type, stored_size, r2_key FROM attachments WHERE message_id = ? ORDER BY idx",
   )
     .bind(id)
     .all<FileRow>();
@@ -81,18 +83,22 @@ export async function analyzeMessage(env: Env, id: number): Promise<RunOutcome> 
 
   if (provider.chat) {
     const settings = await getAnalysisSettings(env.DB);
+    // The 1280px preview when there is one (any size of original); else the
+    // original, if it's a type the models take and small enough.
     const images = files
-      .filter((f) => f.status === "stored" && f.r2_key && IMAGE_TYPES.has(f.content_type) && (f.stored_size ?? 0) <= MAX_IMAGE_BYTES)
+      .filter((f) => f.status === "stored" && f.r2_key && f.kind === "image")
       .slice(0, settings.maxImages);
-    if (!row.text.trim() && images.length === 0) return "skipped";
-
     const parts = await Promise.all(
       images.map(async (f) => {
+        const preview = await env.MEDIA.get(thumbKey(f.id, "preview"));
+        if (preview) return { type: "image" as const, image: new Uint8Array(await preview.arrayBuffer()), mediaType: "image/webp" };
+        if (!IMAGE_TYPES.has(f.content_type) || (f.stored_size ?? 0) > MAX_IMAGE_BYTES) return null;
         const object = await env.MEDIA.get(f.r2_key!);
         return object ? { type: "image" as const, image: new Uint8Array(await object.arrayBuffer()), mediaType: f.content_type } : null;
       }),
     );
     const imageParts = parts.filter((p) => p !== null);
+    if (!row.text.trim() && imageParts.length === 0) return "skipped";
     const { system, prompt } = analysisPrompt(await aiLocale(env.DB), {
       categories: settings.categories,
       chatType: row.chat_type,

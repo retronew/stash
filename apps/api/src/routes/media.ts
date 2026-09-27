@@ -4,7 +4,7 @@ import { resetForRetry } from "#media/attachments";
 import { enqueueDownloads } from "#media/jobs";
 import { mediaStats } from "#messages";
 import { getTask, listTasks } from "#media/tasks";
-import { getThumb } from "#media/thumbs";
+import { makeThumbs, thumbKey } from "#media/thumbs";
 import { ATTACHMENT_KINDS, ATTACHMENT_STATUSES } from "@stash/shared";
 import { cursorParam, limitParam, listParam } from "#params";
 
@@ -43,11 +43,15 @@ mediaRoutes.post("/retry", async (c) => {
 /** A small WebP of a stored image for lists; the original when one can't be made. */
 mediaRoutes.get("/:id{[0-9]+}/thumb", async (c) => {
   const id = Number(c.req.param("id"));
-  const row = await c.env.DB.prepare("SELECT r2_key, kind FROM attachments WHERE id = ? AND status = 'stored'")
+  const row = await c.env.DB.prepare("SELECT r2_key, kind, thumb_status FROM attachments WHERE id = ? AND status = 'stored'")
     .bind(id)
-    .first<{ r2_key: string; kind: string }>();
+    .first<{ r2_key: string; kind: string; thumb_status: string }>();
   if (!row) return c.json({ error: "not found" }, 404);
-  const thumb = row.kind === "image" ? await getThumb(c.env, id, row.r2_key) : null;
+  if (row.kind !== "image") return c.redirect(`/api/media/${id}`, 302);
+  // Not made yet (an older image the sweep hasn't reached): make it now.
+  if (row.thumb_status === "") await makeThumbs(c.env, id, row.r2_key);
+  const thumb = await c.env.MEDIA.get(thumbKey(id));
+  // Failed or skipped: the original, uncached so a later thumbnail shows up.
   if (!thumb) return c.redirect(`/api/media/${id}`, 302);
   const headers = new Headers();
   thumb.writeHttpMetadata(headers);
