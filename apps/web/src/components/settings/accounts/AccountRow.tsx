@@ -4,6 +4,7 @@ import { Badge } from "#components/ui/badge";
 import { Button } from "#components/ui/button";
 import { CopyButton } from "#components/CopyButton";
 import { AvatarPicker } from "#components/settings/accounts/AvatarPicker";
+import { CredentialCheck, type CredentialResult } from "#components/settings/accounts/CredentialCheck";
 import { webhookUrl } from "#hooks/useAccounts";
 import { platformInfo } from "#lib/platforms";
 import { formatDateTime, formatRelative } from "#lib/format";
@@ -16,9 +17,10 @@ interface Props {
   onDelete: () => void;
   onUploadAvatar: (file: File) => Promise<void>;
   onRemoveAvatar: () => Promise<void>;
+  onVerify: () => Promise<CredentialResult>;
 }
 
-export function AccountRow({ account, origin, onEdit, onDelete, onUploadAvatar, onRemoveAvatar }: Props) {
+export function AccountRow({ account, origin, onEdit, onDelete, onUploadAvatar, onRemoveAvatar, onVerify }: Props) {
   const url = webhookUrl(origin, account);
   const platform = platformInfo(account.platform);
   return (
@@ -70,6 +72,7 @@ export function AccountRow({ account, origin, onEdit, onDelete, onUploadAvatar, 
           <CopyButton text={url} aria-label={m.account_copy_webhook()} />
         </dd>
       </dl>
+      <CredentialCheck onCheck={onVerify} />
     </div>
   );
 }

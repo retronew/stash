@@ -12,7 +12,9 @@
 - **Platform-neutral**: each chat platform is an adapter on the API and one entry in the web app's platform registry; pages, storage and the queue don't know which platform a message came from
 - **Web app**: a feed of messages with image thumbnails, a full-size viewer (images, video, audio) and downloads; filter by bot, "with files" or "failed"
 - **Task queue**: every download with summary tiles (saved, storage used, in progress, failed), filters by status, type and bot, per-task details (sizes, attempts, error, next retry, source URL, R2 key) and retry
-- **Event log**: every webhook call is kept for 30 days, hits (saved as a message, or a redelivery) and misses (ignored events, URL checks, rejected calls such as a bad signature or unknown bot, storage errors), with the raw payload. QQ event names are translated; new ones show their raw name
+- **Event log**: every webhook call is kept (30 days by default), hits (saved as a message, or a redelivery) and misses (ignored events, URL checks, rejected calls such as a bad signature or unknown bot, storage errors), with the raw payload. QQ event names are translated; new ones show their raw name
+- **Credential check**: each bot has a "Test credentials" button (also in its form) that asks the platform directly; for QQ that is the official AppAccessToken endpoint, and QQ's own error message is shown
+- **Retention**: Settings → Data sets how long the event log and failed download records are kept (presets or a custom number of days, or forever), with their record count and size
 - **API token**: `Authorization: Bearer <token>` lets scripts read the API, e.g. to back up messages and files
 - **MCP**: AI assistants such as Claude connect to `/api/mcp` (Streamable HTTP, API token) to search messages, look at saved images, list bots, and check or retry failed downloads
 - **Filters and live refresh**: lists filter like PickIt (one-of selects, searchable multi-selects, removable chips); the task queue and event log refresh live every 5 seconds or on demand

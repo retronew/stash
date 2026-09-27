@@ -9,17 +9,16 @@ import { m } from "#lib/i18n";
 /** Download counts and storage used, with "retry all" when something failed. */
 export function TaskSummary({ live, onRetryAll }: { live: boolean; onRetryAll: () => void }) {
   const { data } = useQuery({ ...mediaStatsQuery, refetchInterval: live ? 5000 : false });
-  if (!data) return <div className="h-[76px]" />;
 
   return (
     <div className="space-y-3">
-      <div className="grid animate-fade-in grid-cols-2 gap-2 sm:grid-cols-4">
-        <StatTile label={m.media_stored()} value={String(data.stored)} />
-        <StatTile label={m.media_storage_used()} value={formatBytes(data.storedBytes)} />
-        <StatTile label={m.media_in_flight()} value={String(data.pending + data.downloading)} />
-        <StatTile label={m.media_failed()} value={String(data.failed)} />
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <StatTile label={m.media_stored()} value={data && String(data.stored)} />
+        <StatTile label={m.media_storage_used()} value={data && formatBytes(data.storedBytes)} />
+        <StatTile label={m.media_in_flight()} value={data && String(data.pending + data.downloading)} />
+        <StatTile label={m.media_failed()} value={data && String(data.failed)} />
       </div>
-      {data.failed > 0 && (
+      {!!data?.failed && (
         <Button variant="outline" size="sm" onClick={onRetryAll}>
           <RotateCwIcon />
           {m.action_retry_all_count({ count: data.failed })}

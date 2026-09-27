@@ -13,8 +13,6 @@ import { inClause } from "#params";
 // The webhook event log: every call, hit or miss (see migration 0002).
 
 const RAW_LIMIT = 16 * 1024;
-/** Log rows older than this are pruned by the cron sweep. */
-export const EVENT_RETENTION_DAYS = 30;
 
 export const OUTCOMES: EventOutcome[] = ["stored", "duplicate", "ignored", "validation", "rejected", "error"];
 
@@ -150,9 +148,3 @@ export async function eventTypeCounts(db: D1Database): Promise<EventTypeCount[]>
   return results;
 }
 
-export async function pruneEvents(db: D1Database) {
-  await db
-    .prepare("DELETE FROM webhook_events WHERE received_at < ?")
-    .bind(Date.now() - EVENT_RETENTION_DAYS * 86400_000)
-    .run();
-}

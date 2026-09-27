@@ -9,16 +9,19 @@ const HOURS = 24;
 /** Webhook calls in the last 24 hours: all, hits, misses, and those that failed. */
 export function EventSummary({ live }: { live: boolean }) {
   const { data } = useQuery({ ...eventStatsQuery(HOURS), refetchInterval: live ? 5000 : false });
-  if (!data) return <div className="h-[76px]" />;
-  const hits = HIT_OUTCOMES.reduce((n, o) => n + data.byOutcome[o], 0);
-  const problems = data.byOutcome.rejected + data.byOutcome.error;
+  const hits = data && HIT_OUTCOMES.reduce((n, o) => n + data.byOutcome[o], 0);
+  const count = (n: number | undefined) => (n === undefined ? undefined : String(n));
 
   return (
-    <div className="grid animate-fade-in grid-cols-2 gap-2 sm:grid-cols-4">
-      <StatTile label={m.events_total_24h()} value={String(data.total)} />
-      <StatTile label={m.events_hits()} value={String(hits)} hint={m.events_hits_hint()} />
-      <StatTile label={m.events_misses()} value={String(data.total - hits)} hint={m.events_misses_hint()} />
-      <StatTile label={m.events_problems()} value={String(problems)} hint={m.events_problems_hint()} />
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <StatTile label={m.events_total_24h()} value={count(data?.total)} />
+      <StatTile label={m.events_hits()} value={count(hits)} hint={m.events_hits_hint()} />
+      <StatTile label={m.events_misses()} value={count(data && data.total - hits!)} hint={m.events_misses_hint()} />
+      <StatTile
+        label={m.events_problems()}
+        value={count(data && data.byOutcome.rejected + data.byOutcome.error)}
+        hint={m.events_problems_hint()}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { PlatformAdapter, WebhookResult } from "#platforms/types";
 import { sign, verify } from "#platforms/qq/signature";
 import { isMessageEvent, parseMessageEvent, type QQPayload } from "#platforms/qq/events";
+import { verifyQQCredentials } from "#platforms/qq/credentials";
 
 // https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/interface-framework/event-emit.html
 const OP_DISPATCH = 0;
@@ -58,4 +59,6 @@ export const qqAdapter: PlatformAdapter = {
     if (!message) return { response: ack, messages: [], eventType, outcome: "ignored", detail: "message without id" };
     return { response: ack, messages: [message], eventType };
   },
+
+  verifyCredentials: (appId, secret) => verifyQQCredentials(appId, secret),
 };

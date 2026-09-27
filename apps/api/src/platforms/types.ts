@@ -36,6 +36,9 @@ export interface WebhookResult {
   detail?: string;
 }
 
+/** The platform's answer to "are these credentials valid?". */
+export type CredentialCheck = { ok: true } | { ok: false; error: string };
+
 export interface PlatformAdapter {
   platform: Platform;
   /**
@@ -43,4 +46,6 @@ export interface PlatformAdapter {
    * (signatures cover the exact bytes). Never downloads anything.
    */
   handleWebhook(req: Request, body: string, account: BotAccountRow): Promise<WebhookResult>;
+  /** Asks the platform whether the id / secret pair is valid (no side effects). */
+  verifyCredentials(appId: string, secret: string): Promise<CredentialCheck>;
 }

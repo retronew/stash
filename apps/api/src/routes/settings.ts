@@ -5,6 +5,16 @@ import { ownerEmails, getExtraEmails, setExtraEmails, parseEmails, isValidEmail 
 import { getLocale, setLocale } from "#locale";
 import { API_TOKEN_KEY, getSetting, setSetting } from "#settings";
 import { maskSecret } from "#accounts";
+import {
+  MAX_RETENTION_DAYS,
+  RETENTION_TARGETS,
+  isRetentionTarget,
+  isValidRetention,
+  prune,
+  retentionInfo,
+  retentionStats,
+  setRetentionDays,
+} from "#retention";
 
 export const settingsRoutes = new Hono<{ Bindings: Env }>();
 
@@ -53,4 +63,21 @@ settingsRoutes.post("/api-token/reset", async (c) => {
 settingsRoutes.delete("/api-token", async (c) => {
   await c.env.DB.prepare("DELETE FROM settings WHERE key = ?").bind(API_TOKEN_KEY).run();
   return c.json({ ok: true });
+});
+
+// How long events and failed downloads are kept, with current usage.
+settingsRoutes.get("/retention", async (c) => {
+  const entries = await Promise.all(RETENTION_TARGETS.map(async (t) => [t, await retentionInfo(c.env.DB, t)] as const));
+  return c.json({ maxDays: MAX_RETENTION_DAYS, targets: Object.fromEntries(entries) });
+});
+
+/** body: { days } (0 = forever). Prunes right away, so a shorter window takes effect now. */
+settingsRoutes.put("/retention/:target", async (c) => {
+  const target = c.req.param("target");
+  if (!isRetentionTarget(target)) return c.json({ error: "unknown target" }, 404);
+  const body = await c.req.json<{ days?: unknown }>().catch(() => ({}) as { days?: unknown });
+  if (!isValidRetention(body.days)) return c.json({ error: `days must be 0–${MAX_RETENTION_DAYS}` }, 400);
+  await setRetentionDays(c.env.DB, target, body.days);
+  const deleted = await prune(c.env.DB, target, body.days);
+  return c.json({ days: body.days, deleted, stats: await retentionStats(c.env.DB, target) });
 });

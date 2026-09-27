@@ -11,6 +11,7 @@ import { Switch } from "#components/ui/switch";
 import { Spinner } from "#components/ui/spinner";
 import { webhookUrl, type AccountPayload } from "#hooks/useAccounts";
 import { platformInfo } from "#lib/platforms";
+import { CredentialCheck, type CredentialResult } from "#components/settings/accounts/CredentialCheck";
 import { errorMessage } from "#lib/api";
 import { m } from "#lib/i18n";
 
@@ -22,13 +23,15 @@ interface Props {
   origin: string;
   /** Resolves when saved; a thrown error is shown and the dialog stays open. */
   onSubmit: (payload: AccountPayload) => Promise<unknown>;
+  /** Checks the id / secret in the form (an empty secret: the saved one). */
+  onVerify: (appId: string, appSecret: string) => Promise<CredentialResult>;
 }
 
 const randomKey = () => crypto.randomUUID().replace(/-/g, "").slice(0, 20);
 const KEY_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
 /** Add or edit a bot: its name, the platform's two credentials and the webhook path. */
-export const AccountFormDialog = createCallable<Props, boolean>(({ account, platform: newPlatform, origin, onSubmit, call }) => {
+export const AccountFormDialog = createCallable<Props, boolean>(({ account, platform: newPlatform, origin, onSubmit, onVerify, call }) => {
   const platform = platformInfo(account?.platform ?? newPlatform);
   const id = useId();
   const entered = useEntered();
@@ -100,6 +103,11 @@ export const AccountFormDialog = createCallable<Props, boolean>(({ account, plat
                 onChange={(e) => set({ appSecret: e.target.value })}
               />
               <FieldDescription>{m.account_secret_hint()}</FieldDescription>
+              <CredentialCheck
+                className="mt-1"
+                disabled={!form.appId.trim() || (!account && !form.appSecret.trim())}
+                onCheck={() => onVerify(form.appId, form.appSecret)}
+              />
             </Field>
             <Field>
               <FieldLabel htmlFor={`${id}-key`}>{m.account_webhook_path()}</FieldLabel>

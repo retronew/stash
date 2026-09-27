@@ -161,3 +161,21 @@ export const apiTokenQuery = queryOptions({
   queryKey: ["settings", "api-token"],
   queryFn: () => api<{ masked: string | null }>("/api/settings/api-token"),
 });
+
+export type RetentionTarget = "events" | "tasks";
+
+export interface RetentionStats {
+  count: number;
+  bytes: number;
+  oldest: number | null;
+}
+
+export interface RetentionSettings {
+  maxDays: number;
+  targets: Record<RetentionTarget, { days: number; stats: RetentionStats }>;
+}
+
+export const retentionQuery = queryOptions({
+  queryKey: ["settings", "retention"],
+  queryFn: () => api<RetentionSettings>("/api/settings/retention"),
+});

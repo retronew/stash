@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { isPlatform } from "@stash/shared";
 import type { Env } from "#types";
 import { publicOrigin } from "#origin";
+import { adapterFor } from "#platforms/index";
 import {
   createAccount,
   getAccount,
@@ -54,6 +55,22 @@ accountRoutes.post("/", async (c) => {
     if (isUniqueError(err)) return c.json({ error: "webhook_key_taken" }, 409);
     throw err;
   }
+});
+
+/**
+ * Checks credentials with the platform. body: { platform, appId, appSecret?, id? };
+ * an empty appSecret with an id uses that bot's saved secret (the form never
+ * sees it). Answers { ok: true } or { ok: false, error } — both with 200.
+ */
+accountRoutes.post("/verify", async (c) => {
+  const body = await c.req.json<Record<string, unknown>>().catch(() => ({}) as Record<string, unknown>);
+  const saved = typeof body.id === "string" ? await getAccount(c.env.DB, body.id) : null;
+  const platform = saved?.platform ?? body.platform;
+  if (!isPlatform(platform)) return c.json({ error: "unknown platform" }, 400);
+  const appId = typeof body.appId === "string" && body.appId.trim() ? body.appId.trim() : (saved?.app_id ?? "");
+  const secret = typeof body.appSecret === "string" && body.appSecret.trim() ? body.appSecret.trim() : (saved?.app_secret ?? "");
+  if (!appId || !secret) return c.json({ ok: false, error: "missing_credentials" });
+  return c.json(await adapterFor(platform).verifyCredentials(appId, secret));
 });
 
 accountRoutes.patch("/:id", async (c) => {

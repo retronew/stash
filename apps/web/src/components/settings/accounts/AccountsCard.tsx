@@ -14,7 +14,7 @@ import { m } from "#lib/i18n";
 
 /** The bots Stash receives from, on every platform, with their webhook URLs. */
 export function AccountsCard() {
-  const { accounts, origin, error, create, update, remove, uploadAvatar, removeAvatar } = useAccounts();
+  const { accounts, origin, error, create, update, remove, uploadAvatar, removeAvatar, verify } = useAccounts();
   const platforms = platformList();
 
   async function edit(account: Account | null, platform: Platform = account?.platform ?? platforms[0].id) {
@@ -23,6 +23,7 @@ export function AccountsCard() {
       platform,
       origin,
       onSubmit: (payload) => (account ? update(account.id, payload) : create(platform, payload)),
+      onVerify: (appId, appSecret) => verify({ platform, appId, appSecret, id: account?.id }),
     });
     if (saved) toastSuccess(m.account_saved(), { id: "account-save" });
   }
@@ -61,6 +62,7 @@ export function AccountsCard() {
             onDelete={() => confirmRemove(a)}
             onUploadAvatar={(file) => uploadAvatar(a.id, file)}
             onRemoveAvatar={() => removeAvatar(a.id)}
+            onVerify={() => verify({ platform: a.platform, appId: "", appSecret: "", id: a.id })}
           />
         ))}
         <div className="flex flex-wrap gap-2">

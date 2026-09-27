@@ -1,9 +1,10 @@
 import type { ComponentType, ReactNode } from "react";
 import { useSearchParams } from "react-router";
-import { BotIcon, ShieldCheckIcon } from "lucide-react";
+import { BotIcon, DatabaseIcon, ShieldCheckIcon } from "lucide-react";
 import { AccountsCard } from "#components/settings/accounts/AccountsCard";
 import { ApiTokenCard } from "#components/settings/ApiTokenCard";
 import { McpCard } from "#components/settings/McpCard";
+import { RetentionCard } from "#components/settings/data/RetentionCard";
 import { AllowedEmailsCard } from "#components/settings/AllowedEmailsCard";
 import { BuildInfo } from "#components/settings/BuildInfo";
 import { SettingsTabHeader } from "#components/settings/SettingsTabHeader";
@@ -27,6 +28,18 @@ const TABS: SettingsTab[] = [
     icon: BotIcon,
     description: m.settings_tab_accounts_description(),
     content: <AccountsCard />,
+  },
+  {
+    id: "data",
+    label: m.settings_tab_data(),
+    icon: DatabaseIcon,
+    description: m.settings_tab_data_description(),
+    content: (
+      <>
+        <RetentionCard target="events" title={m.data_events_title()} description={m.data_events_description()} />
+        <RetentionCard target="tasks" title={m.data_tasks_title()} description={m.data_tasks_description()} />
+      </>
+    ),
   },
   {
     id: "access",

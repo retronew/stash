@@ -55,6 +55,14 @@ export function useAccounts() {
     await refresh();
   }
 
+  /**
+   * Asks the platform whether the credentials are valid. With `id`, an empty
+   * secret means the saved one (the form never sees it).
+   */
+  function verify(input: { platform: Platform; appId: string; appSecret: string; id?: string }) {
+    return api<{ ok: true } | { ok: false; error: string }>("/api/accounts/verify", { json: input });
+  }
+
   return {
     origin: query.data?.origin ?? window.location.origin,
     accounts: query.data?.accounts ?? null,
@@ -64,6 +72,7 @@ export function useAccounts() {
     remove,
     uploadAvatar,
     removeAvatar,
+    verify,
   };
 }
 
