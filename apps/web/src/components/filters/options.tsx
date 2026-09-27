@@ -31,7 +31,7 @@ export function chatOptions(chats: ChatSummary[], accounts: Account[], onlyAccou
 }
 
 /** Platform ids are long opaque strings; the start is enough to tell them apart. */
-const shortId = (id: string) => (id.length > 10 ? `${id.slice(0, 8)}…` : id);
+export const shortId = (id: string) => (id.length > 10 ? `${id.slice(0, 8)}…` : id);
 
 /** A fixed set of values as filter options. */
 export function enumOptions<T extends string>(values: readonly T[], label: (value: T) => string): FilterOption[] {

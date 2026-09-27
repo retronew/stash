@@ -16,7 +16,8 @@ export function setActor(c: Context, actor: string) {
 function isAudited(method: string, path: string): boolean {
   if (path.startsWith("/api/auth/")) return path === "/api/auth/sign-out";
   if (path.startsWith("/api/webhooks/")) return false;
-  if (method === "GET") return path === "/api/export/summary";
+  // Reads aren't audited, except the ones that take data out.
+  if (method === "GET") return path === "/api/export/summary" || /^\/api\/backups\/[^/]+$/.test(path);
   return method !== "OPTIONS" && method !== "HEAD";
 }
 

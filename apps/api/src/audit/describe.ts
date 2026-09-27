@@ -80,6 +80,18 @@ export function describe(method: string, path: string, body: Body, name: string 
     if (method === "DELETE") return { action: "bot.delete", target, summary: msg("bot_delete", { label }) };
   }
 
+  if ((m = p.match(/^\/backups\/([^/]+?)(\/restore)?$/))) {
+    const name = decodeURIComponent(m[1]);
+    const target = `backup:${name}`;
+    if (m[2]) {
+      const mode = { key: body.mode === "replace" ? "restore_replace" : "restore_merge" };
+      if (body.dryRun) return { action: "backup.restore_preview", target, summary: msg("backup_restore_preview", { name, mode }) };
+      return { action: "backup.restore", target, summary: msg("backup_restore", { name, mode, count: Number(res.inserted) || 0 }) };
+    }
+    if (method === "GET") return { action: "backup.download", target, summary: msg("backup_download", { name }) };
+    if (method === "DELETE") return { action: "backup.delete", target, summary: msg("backup_delete", { name }) };
+  }
+
   if ((m = p.match(/^\/settings\/retention\/(\w+)$/))) {
     return {
       action: "settings.retention",
@@ -89,6 +101,8 @@ export function describe(method: string, path: string, body: Body, name: string 
   }
 
   switch (`${method} ${p}`) {
+    case "POST /backups":
+      return { action: "backup.create", target: res.name ? `backup:${res.name}` : undefined, summary: msg("backup_create", { count: Number(res.count) || 0 }) };
     case "POST /accounts":
       return { action: "bot.create", target: res.id ? `bot:${res.id}` : undefined, summary: msg("bot_create", { label: quote(body.name) || "—" }) };
     case "POST /accounts/verify":

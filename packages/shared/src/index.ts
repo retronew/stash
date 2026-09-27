@@ -262,3 +262,24 @@ export function thumbnailUrl(id: number): string {
 export function attachmentUrl(id: number, download = false): string {
   return `/api/media/${id}${download ? "?download=1" : ""}`;
 }
+
+/** The Stats page: totals and breakdowns of live messages. */
+export interface StatsSummary {
+  messages: number;
+  trash: number;
+  analyzed: number;
+  embedded: number;
+  /** Saved files, their size, and files that failed to download. */
+  files: number;
+  bytes: number;
+  failedFiles: number;
+  /** Last 30 days, in the viewer's time zone (days without messages are missing). */
+  byDay: { day: string; count: number }[];
+  /** Last 12 months with messages, oldest first. */
+  byMonth: { month: string; count: number }[];
+  byCategory: { category: string; count: number }[];
+  byBot: { accountId: string; name: string; platform: Platform; count: number }[];
+  byChatType: { chatType: ChatType; count: number }[];
+  byKind: { kind: AttachmentKind; count: number; bytes: number }[];
+  topChats: { accountId: string; chatType: ChatType; chatId: string; name: string; count: number }[];
+}

@@ -49,6 +49,7 @@ export function AppShell() {
     { to: "/", label: m.nav_messages(), end: true },
     { to: "/tasks", label: m.nav_tasks() },
     { to: "/events", label: m.nav_events() },
+    { to: "/stats", label: m.nav_stats() },
     { to: "/trash", label: m.nav_trash() },
     { to: "/audit", label: m.nav_audit() },
     { to: "/settings", label: m.nav_settings() },

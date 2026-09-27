@@ -20,7 +20,7 @@ export interface AuditPage {
 }
 
 /** Action prefixes (message.trash → message), for the category filter. */
-export const AUDIT_CATEGORIES = ["message", "bot", "analysis", "media", "settings", "export", "mcp", "auth", "other"] as const;
+export const AUDIT_CATEGORIES = ["message", "bot", "analysis", "media", "settings", "backup", "export", "mcp", "auth", "other"] as const;
 export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
 
 export const categoryLabel = (c: string) => renderMessage({ key: `audit_category_${c}` });

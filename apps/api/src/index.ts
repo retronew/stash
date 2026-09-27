@@ -4,6 +4,8 @@ import { DEV_USER, enabledProviders, getAuth, isDevBypass } from "#auth";
 import { requireAuth } from "#auth-middleware";
 import { auditMiddleware } from "#audit/index";
 import { auditRoutes } from "#routes/audit";
+import { statsRoutes } from "#routes/stats";
+import { backupRoutes } from "#routes/backups";
 import { scheduled } from "#scheduled";
 import { queue } from "#media/consumer";
 import type { MediaJob } from "#media/jobs";
@@ -56,6 +58,8 @@ app.route("/api/export", exportRoutes);
 app.route("/api/analysis", analysisRoutes);
 app.route("/api/settings", settingsRoutes);
 app.route("/api/audit", auditRoutes);
+app.route("/api/stats", statsRoutes);
+app.route("/api/backups", backupRoutes);
 
 export default {
   fetch: app.fetch,

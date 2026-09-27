@@ -2,6 +2,9 @@
 // pages read through these, and invalidate by the same keys after a write.
 
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
+import type { BackupInfo } from "#hooks/useBackups";
+import type { StatsSummary } from "@stash/shared";
+import { tzOffset } from "#lib/stats-data";
 import type { AuditPage } from "#lib/audit";
 import type {
   AnalysisSettings,
@@ -330,4 +333,16 @@ export const auditQuery = (filters: AuditFilters) =>
 export const auditFacetsQuery = queryOptions({
   queryKey: ["audit", "facets"],
   queryFn: () => api<{ actions: { value: string; count: number }[]; actors: { value: string; count: number }[] }>("/api/audit/facets"),
+});
+
+/** The Stats page, in the viewer's time zone. */
+export const statsQuery = queryOptions({
+  queryKey: ["stats"],
+  queryFn: () => api<StatsSummary>(`/api/stats?tz=${tzOffset()}`),
+});
+
+/** Backups of the messages in R2, newest first. */
+export const backupsQuery = queryOptions({
+  queryKey: ["backups"],
+  queryFn: () => api<{ backups: BackupInfo[] }>("/api/backups"),
 });

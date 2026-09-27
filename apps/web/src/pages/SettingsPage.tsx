@@ -11,6 +11,7 @@ import { ReembedCard } from "#components/settings/analysis/ReembedCard";
 import { AnalysisStatusCard } from "#components/settings/analysis/AnalysisStatusCard";
 import { RetentionCard } from "#components/settings/retention/RetentionCard";
 import { ExportCard } from "#components/settings/retention/ExportCard";
+import { BackupsCard } from "#components/settings/backups/BackupsCard";
 import { AllowedEmailsCard } from "#components/settings/AllowedEmailsCard";
 import { BuildInfo } from "#components/settings/BuildInfo";
 import { CardColumns } from "#components/settings/CardColumns";
@@ -64,7 +65,7 @@ const TABS: SettingsTab[] = [
     description: m.settings_tab_data_description(),
     content: (
       <div className="space-y-6">
-        <ExportCard />
+        <CardColumns left={<ExportCard />} right={<BackupsCard />} />
         <CardColumns
           left={
             <>
