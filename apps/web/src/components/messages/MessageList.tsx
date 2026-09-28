@@ -15,6 +15,7 @@ export interface MessageActions {
   remove: (id: number) => Promise<void>;
   retry: (ids: number[]) => Promise<void>;
   analyze: (id: number) => Promise<void>;
+  cancelAnalysis: (id: number) => Promise<void>;
   setLabels: (id: number, labels: { category: string; tags: string[] }) => Promise<void>;
 }
 
@@ -71,6 +72,7 @@ export function MessageList({ messages, accounts, categories, actions, selection
                 <MessageMenuItems
                   message={msg}
                   onAnalyze={() => actions.analyze(msg.id)}
+                  onCancelAnalysis={() => actions.cancelAnalysis(msg.id)}
                   onEditLabels={() =>
                     EditLabelsDialog.call({ message: msg, categories, onSave: (labels) => actions.setLabels(msg.id, labels) })
                   }

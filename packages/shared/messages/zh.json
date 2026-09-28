@@ -763,5 +763,9 @@
   "image_search_with": "用 {engine} 搜图",
   "settings_tab_image_search": "以图搜图",
   "settings_tab_image_search_description": "反向图片搜索的引擎和按钮行为。",
-  "sortable_drag_handle": "拖动排序"
+  "sortable_drag_handle": "拖动排序",
+  "message_cancel_analysis": "取消分析",
+  "message_analysis_cancelled": "已取消分析",
+  "message_cancel_analysis_failed": "无法取消分析",
+  "insights_retrying": "AI 分析出错，稍后重试…"
 }

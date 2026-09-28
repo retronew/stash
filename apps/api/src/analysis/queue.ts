@@ -51,6 +51,26 @@ export async function analyzeWhenReady(env: Env, messageId: number) {
   }
 }
 
+/**
+ * Stops waiting and running analyses: back to "not analyzed". A queued job then
+ * finds nothing to claim, and a running one's result is dropped (consumer.ts).
+ * Returns the ids cancelled.
+ */
+export async function cancelAnalysis(env: Env, ids: number[]): Promise<number[]> {
+  const cancelled: number[] = [];
+  for (let i = 0; i < ids.length; i += BATCH) {
+    const slice = ids.slice(i, i + BATCH);
+    const { results } = await env.DB.prepare(
+      `UPDATE messages SET ai_status = '', ai_error = 'cancelled', ai_next_retry_at = NULL, ai_updated_at = ?
+       WHERE id IN (${slice.map(() => "?").join(",")}) AND ai_status IN ('pending', 'running') RETURNING id`,
+    )
+      .bind(Date.now(), ...slice)
+      .all<{ id: number }>();
+    cancelled.push(...results.map((r) => r.id));
+  }
+  return cancelled;
+}
+
 export type QueueScope = "unanalyzed" | "failed" | "all";
 
 /** Queues many messages at once (at most `limit`), newest first. */

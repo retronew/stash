@@ -4,7 +4,7 @@ import type { Env } from "#types";
 import { getAiSettings } from "#settings";
 import { getAnalysisSettings, saveAnalysisSettings } from "#analysis/settings";
 import { embedCounts, queueReembed, type ReembedMode } from "#analysis/embed";
-import { queueByScope, requestAnalysis, type QueueScope } from "#analysis/queue";
+import { cancelAnalysis, queueByScope, requestAnalysis, type QueueScope } from "#analysis/queue";
 
 /** AI analysis settings, progress and queueing, mounted at /api/analysis. */
 export const analysisRoutes = new Hono<{ Bindings: Env }>();
@@ -75,4 +75,12 @@ analysisRoutes.post("/queue", async (c) => {
   const scope = scopes.find((s) => s === body.scope);
   if (!scope) return c.json({ error: "scope must be unanalyzed, failed or all" }, 400);
   return c.json({ queued: await queueByScope(c.env, scope) });
+});
+
+/** body: { ids: number[] } — stop these messages' waiting or running analyses. */
+analysisRoutes.post("/cancel", async (c) => {
+  const body = await c.req.json<{ ids?: unknown }>().catch(() => ({}) as { ids?: unknown });
+  if (!Array.isArray(body.ids)) return c.json({ error: "ids must be an array" }, 400);
+  const ids = body.ids.filter((id): id is number => Number.isInteger(id)).slice(0, 1000);
+  return c.json({ cancelled: (await cancelAnalysis(c.env, ids)).length });
 });

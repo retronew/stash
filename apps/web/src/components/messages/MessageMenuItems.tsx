@@ -1,27 +1,36 @@
 import type { Message } from "@stash/shared";
-import { RotateCcwIcon, SparklesIcon, TagIcon, Trash2Icon } from "lucide-react";
+import { CircleStopIcon, RotateCcwIcon, SparklesIcon, TagIcon, Trash2Icon } from "lucide-react";
 import { MenuItem, MenuSeparator } from "#components/ui/menu";
 import { m } from "#lib/i18n";
 
-/** Menu items of a live message: analyze, edit labels, move to the recycle bin. */
+/** Menu items of a live message: analyze (or cancel it), edit labels, move to the recycle bin. */
 export function MessageMenuItems({
   message,
   onAnalyze,
+  onCancelAnalysis,
   onEditLabels,
   onDelete,
 }: {
   message: Message;
   onAnalyze: () => void;
+  onCancelAnalysis: () => void;
   onEditLabels: () => void;
   onDelete: () => void;
 }) {
   const busy = message.aiStatus === "pending" || message.aiStatus === "running";
   return (
     <>
-      <MenuItem disabled={busy} onClick={onAnalyze}>
-        <SparklesIcon />
-        {message.aiStatus === "" ? m.message_analyze() : m.message_reanalyze()}
-      </MenuItem>
+      {busy ? (
+        <MenuItem onClick={onCancelAnalysis}>
+          <CircleStopIcon />
+          {m.message_cancel_analysis()}
+        </MenuItem>
+      ) : (
+        <MenuItem onClick={onAnalyze}>
+          <SparklesIcon />
+          {message.aiStatus === "" ? m.message_analyze() : m.message_reanalyze()}
+        </MenuItem>
+      )}
       <MenuItem onClick={onEditLabels}>
         <TagIcon />
         {m.message_edit_labels()}

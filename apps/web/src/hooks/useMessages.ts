@@ -66,11 +66,22 @@ export function useMessages(filters: MessageFilters) {
     }
   }
 
+  /** Stops a waiting or running analysis. */
+  async function cancelAnalysis(id: number) {
+    try {
+      await api("/api/analysis/cancel", { json: { ids: [id] } });
+      toastSuccess(m.message_analysis_cancelled(), { id: "message-analyze" });
+      await refresh();
+    } catch (err) {
+      toastError(m.message_cancel_analysis_failed(), err, { id: "message-analyze" });
+    }
+  }
+
   /** Sets category and tags by hand; throws so the dialog can show the error. */
   async function setLabels(id: number, labels: { category: string; tags: string[] }) {
     await api(`/api/messages/${id}`, { method: "PATCH", json: labels });
     await refresh();
   }
 
-  return { ...list, messages: list.rows, remove, retry, analyze, setLabels };
+  return { ...list, messages: list.rows, remove, retry, analyze, cancelAnalysis, setLabels };
 }

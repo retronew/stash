@@ -763,5 +763,9 @@
   "image_search_with": "{engine} で検索",
   "settings_tab_image_search": "画像検索",
   "settings_tab_image_search_description": "逆画像検索のエンジンとボタンの動作です。",
-  "sortable_drag_handle": "ドラッグで並べ替え"
+  "sortable_drag_handle": "ドラッグで並べ替え",
+  "message_cancel_analysis": "解析をキャンセル",
+  "message_analysis_cancelled": "解析をキャンセルしました",
+  "message_cancel_analysis_failed": "解析をキャンセルできませんでした",
+  "insights_retrying": "AI 解析でエラーが発生しました。まもなく再試行します…"
 }

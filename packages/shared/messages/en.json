@@ -763,5 +763,9 @@
   "image_search_with": "Search with {engine}",
   "settings_tab_image_search": "Image search",
   "settings_tab_image_search_description": "Engines and button behavior for reverse image search.",
-  "sortable_drag_handle": "Drag to reorder"
+  "sortable_drag_handle": "Drag to reorder",
+  "message_cancel_analysis": "Cancel analysis",
+  "message_analysis_cancelled": "Analysis cancelled",
+  "message_cancel_analysis_failed": "Couldn't cancel the analysis",
+  "insights_retrying": "AI analysis hit an error; retrying soon…"
 }

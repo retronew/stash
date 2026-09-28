@@ -39,9 +39,9 @@ export function MessageInsights({ message, onPick }: { message: Message; onPick?
 
   if (message.aiStatus === "pending" || message.aiStatus === "running") {
     return (
-      <p className="flex items-center gap-1.5 text-muted-foreground text-xs">
+      <p className="flex items-center gap-1.5 text-muted-foreground text-xs" title={message.aiError || undefined}>
         <Spinner className="size-3" />
-        {m.insights_analyzing()}
+        {message.aiError ? m.insights_retrying() : m.insights_analyzing()}
       </p>
     );
   }
