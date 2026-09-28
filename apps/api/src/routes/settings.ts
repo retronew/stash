@@ -18,6 +18,7 @@ import {
   type AiEndpoint,
 } from "@stash/shared";
 import { createChatModel, createEmbeddingModel, describeError } from "#ai";
+import { testChat } from "#ai-test";
 import { listModels, ModelListError, type ModelFamily } from "#ai-models";
 import { maskSecret } from "#accounts";
 import {
@@ -176,28 +177,23 @@ settingsRoutes.post("/ai/test", async (c) => {
     const e = next.chat;
     const urls = chatRequestUrls(e.protocol, e.baseUrl, e.model);
     if (!isChatConfigured(next)) return c.json({ ok: false, urls, error: "The chat model isn't fully set up" });
+    const startedAt = Date.now();
     try {
-      const { generateText } = await import("ai");
-      const { text } = await generateText({
-        model: createChatModel(e),
-        prompt: "Reply with: ok",
-        maxOutputTokens: 16, // the Responses API requires >= 16
-        maxRetries: 0,
-      });
-      return c.json({ ok: true, urls, reply: text.slice(0, 100) });
+      return c.json({ ok: true, urls, ...(await testChat(createChatModel(e), e)) });
     } catch (err) {
-      return c.json({ ok: false, urls, error: describeError(err) });
+      return c.json({ ok: false, urls, durationMs: Date.now() - startedAt, error: describeError(err) });
     }
   }
 
   const e = resolveEmbeddingEndpoint(next);
   const urls = e ? embeddingRequestUrls(e.protocol, e.baseUrl, e.model) : [];
   if (!e || !isEmbeddingConfigured(next)) return c.json({ ok: false, urls, error: "The embedding model isn't fully set up" });
+  const startedAt = Date.now();
   try {
     const { embed } = await import("ai");
     const { embedding } = await embed({ model: createEmbeddingModel(e), value: "test", maxRetries: 0 });
-    return c.json({ ok: true, urls, dimensions: embedding.length });
+    return c.json({ ok: true, urls, dimensions: embedding.length, durationMs: Date.now() - startedAt });
   } catch (err) {
-    return c.json({ ok: false, urls, error: describeError(err) });
+    return c.json({ ok: false, urls, durationMs: Date.now() - startedAt, error: describeError(err) });
   }
 });
