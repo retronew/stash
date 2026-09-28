@@ -5,6 +5,7 @@ import { enqueueDownloads } from "#media/jobs";
 import { mediaStats } from "#messages";
 import { getTask, listTasks } from "#media/tasks";
 import { makeThumbs, thumbKey } from "#media/thumbs";
+import { signedMediaUrl } from "#media/signed-url";
 import { ATTACHMENT_KINDS, ATTACHMENT_STATUSES } from "@stash/shared";
 import { cursorParam, limitParam, listParam } from "#params";
 
@@ -38,6 +39,18 @@ mediaRoutes.post("/retry", async (c) => {
   const reset = await resetForRetry(c.env.DB, ids ?? "failed");
   await enqueueDownloads(c.env, reset);
   return c.json({ queued: reset.length });
+});
+
+/** A 15-minute public link to a stored image, for reverse image search engines to fetch. */
+mediaRoutes.post("/:id{[0-9]+}/search-link", async (c) => {
+  const id = Number(c.req.param("id"));
+  const row = await c.env.DB.prepare("SELECT 1 FROM attachments WHERE id = ? AND status = 'stored' AND kind = 'image'")
+    .bind(id)
+    .first();
+  if (!row) return c.json({ error: "not found" }, 404);
+  const url = await signedMediaUrl(c.env, id);
+  if (!url) return c.json({ error: "BETTER_AUTH_URL isn't set, so there's no public address for the image" }, 400);
+  return c.json({ url, expiresAt: Date.now() + 14 * 60_000 });
 });
 
 /**

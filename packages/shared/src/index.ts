@@ -1,6 +1,7 @@
 // Types shared by the web app and the API.
 
 export * from "./cron";
+export * from "./image-search";
 export * from "./ai/index";
 
 /** Chat platforms Stash can receive from. */

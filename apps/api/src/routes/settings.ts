@@ -21,6 +21,7 @@ import { createChatModel, createEmbeddingModel, describeError } from "#ai";
 import { testChat } from "#ai-test";
 import { listModels, ModelListError, type ModelFamily } from "#ai-models";
 import { maskSecret } from "#accounts";
+import { getImageSearchSettings, saveImageSearchSettings } from "#image-search";
 import {
   MAX_RETENTION_DAYS,
   RETENTION_TARGETS,
@@ -83,6 +84,14 @@ settingsRoutes.post("/api-token/reset", async (c) => {
 settingsRoutes.delete("/api-token", async (c) => {
   await deleteSetting(c.env.DB, API_TOKEN_KEY);
   return c.json({ ok: true });
+});
+
+// Reverse image search: engines, their order, and what the search button does.
+settingsRoutes.get("/image-search", async (c) => c.json(await getImageSearchSettings(c.env.DB)));
+
+settingsRoutes.put("/image-search", async (c) => {
+  const body = await c.req.json().catch(() => null);
+  return c.json(await saveImageSearchSettings(c.env.DB, body));
 });
 
 // How long events and failed downloads are kept, with current usage.

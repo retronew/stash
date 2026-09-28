@@ -4,6 +4,7 @@ import { DownloadIcon } from "lucide-react";
 import { attachmentUrl, type Attachment } from "@stash/shared";
 import { Dialog, DialogFooter, DialogHeader, DialogPopup, DialogTitle } from "#components/ui/dialog";
 import { Button } from "#components/ui/button";
+import { ImageSearchButton } from "#components/messages/ImageSearchButton";
 import { formatBytes } from "#lib/format";
 import { m } from "#lib/i18n";
 
@@ -32,6 +33,7 @@ export const MediaViewer = createCallable<Props, void>(({ attachment: a, call })
             {formatBytes(a.storedSize ?? 0)}
             {a.width && a.height ? ` · ${a.width}×${a.height}` : ""}
           </span>
+          {a.kind === "image" && <ImageSearchButton attachmentId={a.id} variant="viewer" />}
           <Button variant="outline" render={<a href={attachmentUrl(a.id, true)} />}>
             <DownloadIcon />
             {m.attachment_download()}

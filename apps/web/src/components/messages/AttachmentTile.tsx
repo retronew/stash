@@ -1,6 +1,7 @@
 import { AlertTriangleIcon, DownloadIcon, FileIcon, FilmIcon, ImageIcon, MusicIcon, RotateCwIcon } from "lucide-react";
 import { attachmentUrl, thumbnailUrl, type Attachment } from "@stash/shared";
 import { Button } from "#components/ui/button";
+import { ImageSearchButton } from "#components/messages/ImageSearchButton";
 import { Spinner } from "#components/ui/spinner";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "#components/ui/tooltip";
 import { formatBytes } from "#lib/format";
@@ -21,15 +22,18 @@ const tileClass = "relative flex aspect-square w-full overflow-hidden rounded-lg
 export function AttachmentTile({ attachment: a, onOpen, onRetry }: Props) {
   if (a.status === "stored" && a.kind === "image") {
     return (
-      <button type="button" className={cn(tileClass, "cursor-zoom-in")} onClick={() => onOpen(a)}>
-        <img
-          src={thumbnailUrl(a.id)}
-          alt={a.filename}
-          loading="lazy"
-          decoding="async"
-          className="size-full object-cover transition-transform duration-200 hover:scale-[1.03]"
-        />
-      </button>
+      <div className="group/tile relative">
+        <button type="button" className={cn(tileClass, "cursor-zoom-in")} onClick={() => onOpen(a)}>
+          <img
+            src={thumbnailUrl(a.id)}
+            alt={a.filename}
+            loading="lazy"
+            decoding="async"
+            className="size-full object-cover transition-transform duration-200 hover:scale-[1.03]"
+          />
+        </button>
+        <ImageSearchButton attachmentId={a.id} variant="tile" className="absolute end-1.5 top-1.5" />
+      </div>
     );
   }
 

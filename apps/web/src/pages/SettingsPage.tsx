@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import { useSearchParams } from "react-router";
-import { BotIcon, ClockIcon, DatabaseIcon, ShieldCheckIcon, SparklesIcon } from "lucide-react";
+import { BotIcon, ClockIcon, DatabaseIcon, ScanSearchIcon, ShieldCheckIcon, SparklesIcon } from "lucide-react";
 import { CronTasksCard } from "#components/settings/cron/CronTasksCard";
 import { AccountsCard } from "#components/settings/accounts/AccountsCard";
 import { ApiTokenCard } from "#components/settings/ApiTokenCard";
@@ -12,6 +12,7 @@ import { ReembedCard } from "#components/settings/analysis/ReembedCard";
 import { AnalysisStatusCard } from "#components/settings/analysis/AnalysisStatusCard";
 import { RetentionCard } from "#components/settings/retention/RetentionCard";
 import { ExportCard } from "#components/settings/retention/ExportCard";
+import { ImageSearchCard } from "#components/settings/image-search/ImageSearchCard";
 import { BackupsCard } from "#components/settings/backups/BackupsCard";
 import { AllowedEmailsCard } from "#components/settings/AllowedEmailsCard";
 import { BuildInfo } from "#components/settings/BuildInfo";
@@ -60,6 +61,13 @@ const TABS: SettingsTab[] = [
         />
       </div>
     ),
+  },
+  {
+    id: "image-search",
+    label: m.settings_tab_image_search(),
+    icon: ScanSearchIcon,
+    description: m.settings_tab_image_search_description(),
+    content: <CardColumns left={<ImageSearchCard />} right={null} />,
   },
   {
     id: "data",
