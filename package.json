@@ -9,6 +9,7 @@
     "build": "pnpm --filter @stash/web build",
     "deploy": "pnpm run build && pnpm --filter @stash/api deploy",
     "db:migrate": "pnpm --filter @stash/api db:migrate",
+    "db:pull": "pnpm --filter @stash/api db:pull",
     "db:migrate:remote": "pnpm --filter @stash/api db:migrate:remote",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test"

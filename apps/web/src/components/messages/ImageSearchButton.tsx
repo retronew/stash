@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDownIcon, ScanSearchIcon, LayersIcon } from "lucide-react";
 import { IMAGE_SEARCH_ENGINE_NAMES } from "@stash/shared";
 import { Button } from "#components/ui/button";
+import { EngineIcon } from "#components/EngineIcon";
 import { Group, GroupSeparator } from "#components/ui/group";
 import { Menu, MenuGroup, MenuGroupLabel, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "#components/ui/menu";
 import { useImageSearch } from "#hooks/useImageSearch";
@@ -34,6 +35,7 @@ export function ImageSearchButton({ attachmentId, variant, className }: Props) {
           <MenuGroupLabel>{m.image_search()}</MenuGroupLabel>
           {engines.map((engine) => (
             <MenuItem key={engine} onClick={() => search([engine])}>
+              <EngineIcon engine={engine} />
               {IMAGE_SEARCH_ENGINE_NAMES[engine]}
             </MenuItem>
           ))}
@@ -53,7 +55,9 @@ export function ImageSearchButton({ attachmentId, variant, className }: Props) {
 
   if (tile) {
     const tileClass = cn(
-      "bg-background/80 shadow-sm backdrop-blur-sm transition-opacity sm:opacity-0 sm:group-hover/tile:opacity-100 sm:focus-visible:opacity-100 sm:data-popup-open:opacity-100",
+      // Light frosted glass; brightens on hover. Hidden until the tile is hovered on desktop.
+      "border-white/40 bg-white/30 text-foreground shadow-sm backdrop-blur-md backdrop-saturate-150 hover:bg-white/55 hover:shadow-md data-popup-open:bg-white/55 dark:border-white/15 dark:bg-black/20 dark:hover:bg-black/40 dark:data-popup-open:bg-black/40",
+      "transition-[opacity,background-color,box-shadow] duration-200 sm:opacity-0 sm:group-hover/tile:opacity-100 sm:focus-visible:opacity-100 sm:data-popup-open:opacity-100",
       className,
     );
     return quick ? (

@@ -750,11 +750,9 @@
   "image_search_all_option": "「すべてのエンジン」メニュー項目",
   "image_search_description": "Google レンズ、Bing、Yandex などで画像をワンクリックで逆検索します。エンジンは 15 分間有効な公開リンクから画像を読み込みます。",
   "image_search_engines": "検索エンジン",
-  "image_search_engines_hint": "チェックしたエンジンがこの順番でメニューに表示されます。",
+  "image_search_engines_hint": "チェックしたエンジンがこの順番でメニューに表示されます。左のハンドルをドラッグして並べ替えます。",
   "image_search_failed": "画像検索できませんでした",
   "image_search_more": "その他の検索エンジン",
-  "image_search_move_down": "下へ移動",
-  "image_search_move_up": "上へ移動",
   "image_search_on_tiles": "一覧の画像にボタンを表示",
   "image_search_on_tiles_hint": "オフにすると、拡大表示のときだけ表示します。",
   "image_search_quick": "ボタンをクリックしたとき",
@@ -764,5 +762,6 @@
   "image_search_title": "画像で検索",
   "image_search_with": "{engine} で検索",
   "settings_tab_image_search": "画像検索",
-  "settings_tab_image_search_description": "逆画像検索のエンジンとボタンの動作です。"
+  "settings_tab_image_search_description": "逆画像検索のエンジンとボタンの動作です。",
+  "sortable_drag_handle": "ドラッグで並べ替え"
 }

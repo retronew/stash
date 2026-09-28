@@ -11,6 +11,7 @@
     "deploy": "wrangler deploy",
     "db:migrate": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:pull": "node scripts/pull-db.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

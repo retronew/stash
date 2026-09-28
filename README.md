@@ -19,7 +19,7 @@
 - **Credential check**: each bot has a "Test credentials" button (also in its form) that asks the platform directly; for QQ that is the official AppAccessToken endpoint, and QQ's own error message is shown
 - **Bulk actions**: in select mode (on the Messages page and in the trash), set a category, add or remove tags, analyze again, retry failed files, delete, or restore / delete forever
 - **Thumbnails**: right after a download, the Images binding makes one 1280px WebP preview that lists show and AI analysis uses instead of the original (so large screenshots get analyzed too); it's kept in R2 and made once (free plan: 5,000 transformations a month). When Images can't handle an image (very large ones), the free wsrv.nl service makes them instead, fetching the original through a 15-minute signed link (its limits: 100 MiB, 71 megapixels). Older images are filled in a few at a time by the cron sweep; the original opens on click
-- **Search by image** (after [search-by-image](https://github.com/dessant/search-by-image)): a button on images in the list and in the viewer searches with Google Lens, Bing, Yandex, Baidu, TinEye, SauceNAO, IQDB, ascii2d or trace.moe. The engine fetches the image through a 15-minute signed link, so `BETTER_AUTH_URL` must be a public address. Settings → Image search picks the engines and their order, whether a click searches with one engine or opens the menu, an "All engines" item (a tab per engine), and whether the button shows on list images
+- **Search by image** (after [search-by-image](https://github.com/dessant/search-by-image)): a button on images in the list and in the viewer searches with Google Lens, Bing, Yandex, TinEye, Sogou, Lenso.ai, SauceNAO, IQDB, ascii2d or trace.moe. The engine fetches the image through a 15-minute signed link, so `BETTER_AUTH_URL` must be a public address. Settings → Image search picks the engines and their order, whether a click searches with one engine or opens the menu, an "All engines" item (a tab per engine), and whether the button shows on list images
 - **Virtual scrolling**: the message list and the trash only mount the cards near the viewport, as in PickIt
 - **Backups**: as in PickIt, the message records (with AI labels and attachment info; not the raw payloads or vectors) are backed up to R2 every day and kept 30 days; back up by hand, download, or restore by merging (only what's missing) or replacing (current messages go to the trash first). A snapshot is taken before every restore. Files are already in R2 and aren't copied, so a message deleted forever comes back without its files
 - **Scheduled tasks** (Settings → Scheduled tasks, as in PickIt): every 10 minutes the Worker rescues lost downloads and analyses, fills in thumbnails, prunes old records and makes the daily backup; each task shows its last and next run, recent runs and errors, and can be run by hand
@@ -68,10 +68,12 @@ Requirements: Node.js 24+, pnpm 11+.
 pnpm install
 cp apps/api/.dev.vars.example apps/api/.dev.vars   # local secrets (git-ignored)
 pnpm db:migrate   # apply migrations to the local D1 database
-pnpm dev          # web on http://localhost:5173, API on :8787
+pnpm dev          # web on http://localhost:5173, API on :8788
 ```
 
-`wrangler dev` simulates D1, R2 and Queues locally. `.dev.vars.example` sets `DEV_AUTH_BYPASS=1`, which skips sign-in while `BETTER_AUTH_URL` is localhost. QQ can't reach localhost; to try real messages, deploy, or expose port 8787 with a tunnel (e.g. `cloudflared tunnel --url http://localhost:8787`) and use that URL.
+`wrangler dev` simulates D1, R2 and Queues locally. `.dev.vars.example` sets `DEV_AUTH_BYPASS=1`, which skips sign-in while `BETTER_AUTH_URL` is localhost. QQ can't reach localhost; to try real messages, deploy, or expose port 8788 with a tunnel (e.g. `cloudflared tunnel --url http://localhost:8788`) and use that URL.
+
+To debug with real data, `pnpm db:pull` (with `pnpm dev` stopped; needs `wrangler login`) copies the deployed D1 database into the local one: it replaces local data, only reads the remote side, and leaves out sign-in tables. Files stay in R2, so pulled images don't load locally.
 
 ### Translations
 

@@ -4,6 +4,8 @@
 	// Better Auth imports node:crypto / node:async_hooks.
 	"compatibility_flags": ["nodejs_compat"],
 	"main": "src/index.ts",
+	// 8788, not the default 8787, so it can run next to PickIt's wrangler dev.
+	"dev": { "port": 8788 },
 	"assets": {
 		"directory": "./dist",
 		"binding": "ASSETS",

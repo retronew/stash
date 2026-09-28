@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { IMAGE_SEARCH_ENGINE_NAMES, type ImageSearchSettings } from "@stash/shared";
+import { IMAGE_SEARCH_ENGINE_NAMES, type ImageSearchEngine, type ImageSearchSettings } from "@stash/shared";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "#components/ui/card";
 import { Field, FieldDescription, FieldLabel } from "#components/ui/field";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "#components/ui/select";
 import { Switch } from "#components/ui/switch";
 import { Button } from "#components/ui/button";
 import { Spinner } from "#components/ui/spinner";
+import { EngineIcon } from "#components/EngineIcon";
 import { FieldSkeleton } from "#components/settings/skeletons";
 import { ImageSearchEnginesField } from "#components/settings/image-search/ImageSearchEnginesField";
 import { useImageSearchSettings } from "#hooks/useImageSearch";
@@ -42,6 +43,14 @@ export function ImageSearchCard() {
     ...Object.fromEntries(draft?.engines.map((e) => [e, IMAGE_SEARCH_ENGINE_NAMES[e]]) ?? []),
   };
 
+  // The same icon and name in the list and on the closed select.
+  const quickOption = (v: string) => (
+    <span className="flex items-center gap-2">
+      {v !== "menu" && <EngineIcon engine={v as ImageSearchEngine} />}
+      {quickItems[v]}
+    </span>
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -70,12 +79,12 @@ export function ImageSearchCard() {
               <FieldLabel>{m.image_search_quick()}</FieldLabel>
               <Select value={draft.quickAction} items={quickItems} onValueChange={(v) => v && set({ quickAction: v as ImageSearchSettings["quickAction"] })}>
                 <SelectTrigger className="w-full sm:w-56">
-                  <SelectValue />
+                  <SelectValue>{(v: string) => quickOption(v)}</SelectValue>
                 </SelectTrigger>
                 <SelectPopup>
-                  {Object.entries(quickItems).map(([k, label]) => (
+                  {Object.keys(quickItems).map((k) => (
                     <SelectItem key={k} value={k}>
-                      {label}
+                      {quickOption(k)}
                     </SelectItem>
                   ))}
                 </SelectPopup>

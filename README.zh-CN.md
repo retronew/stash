@@ -19,7 +19,7 @@
 - **凭据校验**：每个机器人都有「测试凭据」按钮（编辑表单里也有），直接向平台验证；QQ 用的是官方获取 AppAccessToken 的接口，失败时显示 QQ 返回的原始错误
 - **批量操作**：在消息页和回收站进入选择模式后，可以批量改分类、添加或移除标签、重新识别、重试失败的文件、删除，或恢复、彻底删除
 - **缩略图**：下载完成后用 Images 绑定生成一份 1280px 的 WebP 预览图，列表显示它，AI 识别也用它代替原图（大截图也能识别）。存进 R2，只生成一次（免费套餐每月 5,000 次转换）。Images 处理不了的图片（例如超大图）改用免费的 wsrv.nl 生成，它通过 15 分钟有效的签名链接读取原图（限制：100 MiB、7100 万像素）。以前的图片由定时任务每次补 20 张；点击查看原图
-- **以图搜图**（参考 [search-by-image](https://github.com/dessant/search-by-image)）：列表里的图片和大图查看器上都有搜图按钮，可以用 Google Lens、Bing、Yandex、百度、TinEye、SauceNAO、IQDB、ascii2d 或 trace.moe 反向搜索。引擎通过 15 分钟有效的签名链接读取图片，所以 `BETTER_AUTH_URL` 必须是公网地址。在「设置 → 以图搜图」里可以选择引擎及顺序、点击按钮是直接用某个引擎搜索还是弹出菜单、是否显示「全部引擎」（每个引擎开一个标签页），以及是否在列表图片上显示按钮
+- **以图搜图**（参考 [search-by-image](https://github.com/dessant/search-by-image)）：列表里的图片和大图查看器上都有搜图按钮，可以用 Google Lens、Bing、Yandex、TinEye、搜狗、Lenso.ai、SauceNAO、IQDB、ascii2d 或 trace.moe 反向搜索。引擎通过 15 分钟有效的签名链接读取图片，所以 `BETTER_AUTH_URL` 必须是公网地址。在「设置 → 以图搜图」里可以选择引擎及顺序、点击按钮是直接用某个引擎搜索还是弹出菜单、是否显示「全部引擎」（每个引擎开一个标签页），以及是否在列表图片上显示按钮
 - **虚拟滚动**：消息列表和回收站只渲染视口附近的卡片，和 PickIt 一样
 - **备份与恢复**：和 PickIt 一样，每天把消息记录（含 AI 分类、标签和附件信息；不含原始推送数据和向量）备份到 R2，保留 30 天；也可以手动备份、下载，或以「合并」（只补缺少的）或「替换」（现有消息先进回收站）方式恢复，恢复前会自动存一份快照。文件本身已在 R2，不重复备份，所以已彻底删除的消息恢复后没有文件
 - **定时任务**（「设置 → 定时任务」，和 PickIt 一样）：每 10 分钟补救丢失的下载和 AI 识别、补生成缩略图、清理过期记录、生成每日备份；每项任务显示上次和下次运行时间、最近记录和错误，可以手动执行
@@ -68,10 +68,12 @@ Cron 每 10 分钟：把丢失或中断的下载重新排队
 pnpm install
 cp apps/api/.dev.vars.example apps/api/.dev.vars   # 本地密钥（已被 git 忽略）
 pnpm db:migrate   # 把迁移应用到本地 D1
-pnpm dev          # 前端 http://localhost:5173，API :8787
+pnpm dev          # 前端 http://localhost:5173，API :8788
 ```
 
-`wrangler dev` 会在本地模拟 D1、R2 和 Queues。`.dev.vars.example` 里设置了 `DEV_AUTH_BYPASS=1`，在 `BETTER_AUTH_URL` 为 localhost 时跳过登录。QQ 访问不到 localhost；要收真实消息，可以直接部署，或者用隧道暴露 8787 端口（例如 `cloudflared tunnel --url http://localhost:8787`），再用隧道地址。
+`wrangler dev` 会在本地模拟 D1、R2 和 Queues。`.dev.vars.example` 里设置了 `DEV_AUTH_BYPASS=1`，在 `BETTER_AUTH_URL` 为 localhost 时跳过登录。QQ 访问不到 localhost；要收真实消息，可以直接部署，或者用隧道暴露 8788 端口（例如 `cloudflared tunnel --url http://localhost:8788`），再用隧道地址。
+
+想用真实数据调试时，先停掉 `pnpm dev`，运行 `pnpm db:pull`（需要先 `wrangler login`），会把线上的 D1 数据库复制到本地：覆盖本地数据，对线上只读，不复制登录相关的表。文件仍在 R2 里，所以同步下来的图片在本地显示不出来。
 
 ### 翻译
 

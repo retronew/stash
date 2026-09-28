@@ -1,12 +1,15 @@
 // Reverse image search (after dessant/search-by-image): each engine takes a
 // public image URL. Stash hands it a short-lived signed link to the file.
+// Engines that only take an upload there (Baidu, Pinterest, stock sites…)
+// need a browser extension and aren't offered.
 
 export const IMAGE_SEARCH_ENGINES = [
   "google",
   "bing",
   "yandex",
-  "baidu",
   "tineye",
+  "sogou",
+  "lenso",
   "saucenao",
   "iqdb",
   "ascii2d",
@@ -23,8 +26,9 @@ export const IMAGE_SEARCH_ENGINE_NAMES: Record<ImageSearchEngine, string> = {
   google: "Google Lens",
   bing: "Bing",
   yandex: "Yandex",
-  baidu: "Baidu",
   tineye: "TinEye",
+  sogou: "Sogou",
+  lenso: "Lenso.ai",
   saucenao: "SauceNAO",
   iqdb: "IQDB",
   ascii2d: "ascii2d",
@@ -35,8 +39,9 @@ const TEMPLATES: Record<ImageSearchEngine, (u: string) => string> = {
   google: (u) => `https://lens.google.com/uploadbyurl?url=${u}`,
   bing: (u) => `https://www.bing.com/images/search?view=detailv2&iss=sbi&form=SBIVSP&sbisrc=UrlPaste&q=imgurl:${u}`,
   yandex: (u) => `https://yandex.com/images/search?rpt=imageview&url=${u}`,
-  baidu: (u) => `https://graph.baidu.com/details?isfromtusoupc=1&tn=pc&image=${u}`,
   tineye: (u) => `https://tineye.com/search?url=${u}`,
+  sogou: (u) => `https://pic.sogou.com/ris?query=${u}&flag=1&drag=0`,
+  lenso: (u) => `https://lenso.ai/en/search-by-url?url=${u}`,
   saucenao: (u) => `https://saucenao.com/search.php?url=${u}`,
   iqdb: (u) => `https://iqdb.org/?url=${u}`,
   ascii2d: (u) => `https://ascii2d.net/search/url/${u}`,

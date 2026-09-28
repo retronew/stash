@@ -750,11 +750,9 @@
   "image_search_all_option": "\"All engines\" menu item",
   "image_search_description": "Reverse-search an image with Google Lens, Bing, Yandex and others in one click. Engines read the image from a public link that works for 15 minutes.",
   "image_search_engines": "Search engines",
-  "image_search_engines_hint": "Checked engines appear in the menu in this order.",
+  "image_search_engines_hint": "Checked engines appear in the menu in this order; drag the handle to reorder.",
   "image_search_failed": "Couldn't search by image",
   "image_search_more": "More search engines",
-  "image_search_move_down": "Move down",
-  "image_search_move_up": "Move up",
   "image_search_on_tiles": "Show the button on list images",
   "image_search_on_tiles_hint": "When off, it only shows in the full-size viewer.",
   "image_search_quick": "Clicking the button",
@@ -764,5 +762,6 @@
   "image_search_title": "Search by image",
   "image_search_with": "Search with {engine}",
   "settings_tab_image_search": "Image search",
-  "settings_tab_image_search_description": "Engines and button behavior for reverse image search."
+  "settings_tab_image_search_description": "Engines and button behavior for reverse image search.",
+  "sortable_drag_handle": "Drag to reorder"
 }
