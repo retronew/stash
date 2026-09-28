@@ -41,7 +41,8 @@ export function MessagesPage() {
   const search = useMessageSearch(text, filters);
   // Selection works on whatever is shown: search results or the feed.
   const shown = search.active ? search.hits : feed.messages;
-  const allTags = [...new Set(shown.flatMap((msg) => msg.tags))].sort();
+  // Every tag in use, most used first, not just those on the cards shown.
+  const allTags = (tags ?? []).map((t) => t.tag);
   const selection = useMessageSelection(shown, allTags);
   const categoryNames = categories.map((c) => c.category);
   // A category or tag clicked on a card joins the filters.

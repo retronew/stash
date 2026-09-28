@@ -518,6 +518,7 @@
   "kind_file": "Files",
   "kind_image": "Images",
   "kind_video": "Videos",
+  "labels_category_new": "Type to create a new category",
   "labels_category": "Category",
   "labels_tags": "Tags",
   "labels_title": "Category and tags",

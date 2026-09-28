@@ -3,10 +3,12 @@ import { createCallable } from "react-call";
 import type { Message } from "@stash/shared";
 import { Dialog, DialogFooter, DialogHeader, DialogPanel, DialogPopup, DialogTitle } from "#components/ui/dialog";
 import { Field, FieldLabel } from "#components/ui/field";
-import { Input } from "#components/ui/input";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "#components/ui/button";
 import { Spinner } from "#components/ui/spinner";
 import { TagsField } from "#components/TagsField";
+import { SuggestField } from "#components/SuggestField";
+import { tagsQuery } from "#lib/queries";
 import { useEntered } from "#hooks/useEntered";
 import { errorMessage } from "#lib/api";
 import { m } from "#lib/i18n";
@@ -26,6 +28,7 @@ export const EditLabelsDialog = createCallable<Props, boolean>(({ message, categ
   const [tags, setTags] = useState(message.tags);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { data: tagsInUse } = useQuery(tagsQuery);
 
   async function submit() {
     setSaving(true);
@@ -49,16 +52,16 @@ export const EditLabelsDialog = createCallable<Props, boolean>(({ message, categ
         <DialogPanel className="space-y-4">
           <Field>
             <FieldLabel htmlFor={`${id}-category`}>{m.labels_category()}</FieldLabel>
-            <Input id={`${id}-category`} list={`${id}-categories`} value={category} onChange={(e) => setCategory(e.target.value)} />
-            <datalist id={`${id}-categories`}>
-              {categories.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
+            <SuggestField
+              id={`${id}-category`}
+              value={category} onChange={setCategory}
+              suggestions={categories}
+              emptyLabel={m.labels_category_new()}
+            />
           </Field>
           <Field>
             <FieldLabel>{m.labels_tags()}</FieldLabel>
-            <TagsField tags={tags} onChange={setTags} suggestions={[]} />
+            <TagsField tags={tags} onChange={setTags} suggestions={(tagsInUse ?? []).map((t) => t.tag)} />
           </Field>
         </DialogPanel>
         <DialogFooter className="sm:items-center">

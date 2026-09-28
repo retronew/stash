@@ -65,11 +65,11 @@ export function TagsField({ tags, onChange, suggestions }: Props) {
       <ComboboxPopup>
         <ComboboxEmpty>{m.tags_field_new()}</ComboboxEmpty>
         <ComboboxList>
-          {items.map((s) => (
+          {(s: string) => (
             <ComboboxItem key={s} value={s}>
               {s}
             </ComboboxItem>
-          ))}
+          )}
         </ComboboxList>
       </ComboboxPopup>
     </Combobox>

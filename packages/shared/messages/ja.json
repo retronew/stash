@@ -518,6 +518,7 @@
   "kind_file": "ファイル",
   "kind_image": "画像",
   "kind_video": "動画",
+  "labels_category_new": "入力すると新しいカテゴリを作成します",
   "labels_category": "分類",
   "labels_tags": "タグ",
   "labels_title": "分類とタグ",

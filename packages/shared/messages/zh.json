@@ -518,6 +518,7 @@
   "kind_file": "文件",
   "kind_image": "图片",
   "kind_video": "视频",
+  "labels_category_new": "输入即可新建分类",
   "labels_category": "分类",
   "labels_tags": "标签",
   "labels_title": "分类和标签",
