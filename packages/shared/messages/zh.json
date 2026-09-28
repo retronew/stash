@@ -767,5 +767,11 @@
   "message_cancel_analysis": "取消分析",
   "message_analysis_cancelled": "已取消分析",
   "message_cancel_analysis_failed": "无法取消分析",
-  "insights_retrying": "AI 分析出错，稍后重试…"
+  "insights_retrying": "AI 分析出错，稍后重试…",
+  "audit_action_analysis_cancel": "取消识别",
+  "audit_action_media_image_search": "以图搜图",
+  "audit_action_settings_image_search": "以图搜图设置",
+  "audit_sum_analysis_cancel": "取消 {count} 条消息的识别",
+  "audit_sum_image_search": "以图搜图：附件 {id}（生成 15 分钟公开链接）",
+  "audit_sum_image_search_settings": "修改以图搜图设置"
 }

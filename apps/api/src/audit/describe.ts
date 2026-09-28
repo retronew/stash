@@ -72,6 +72,11 @@ export function describe(method: string, path: string, body: Body, name: string 
     if (m[2] === "purge") return { action: "message.purge", target, summary: msg("message_purge", { id }) };
   }
 
+  // A public link to the image goes to a search engine, so it's worth a record.
+  if ((m = p.match(/^\/media\/(\d+)\/search-link$/))) {
+    return { action: "media.image_search", target: `attachment:${m[1]}`, summary: msg("image_search", { id: `#${m[1]}` }) };
+  }
+
   if ((m = p.match(/^\/accounts\/([^/]+)(\/avatar)?$/)) && m[1] !== "verify") {
     const target = `bot:${m[1]}`;
     const label = quote(name ?? body.name) || m[1];
@@ -129,6 +134,8 @@ export function describe(method: string, path: string, body: Body, name: string 
           ? msg("analysis_queue_ids", { count: count(body.ids) })
           : msg("analysis_queue_scope", { scope: { key: `audit_scope_${String(body.scope)}` } }),
       };
+    case "POST /analysis/cancel":
+      return { action: "analysis.cancel", summary: msg("analysis_cancel", { count: count(body.ids) }) };
     case "POST /analysis/reembed":
       return {
         action: "analysis.reembed",
@@ -136,6 +143,8 @@ export function describe(method: string, path: string, body: Body, name: string 
       };
     case "PUT /settings/allowed-emails":
       return { action: "settings.allowed_emails", summary: msg("allowed_emails", { count: count(body.emails) }) };
+    case "PUT /settings/image-search":
+      return { action: "settings.image_search", summary: msg("image_search_settings") };
     case "PUT /settings/locale":
       return { action: "settings.locale", summary: msg("locale") };
     case "POST /settings/api-token/reset":

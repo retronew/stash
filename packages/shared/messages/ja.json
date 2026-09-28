@@ -767,5 +767,11 @@
   "message_cancel_analysis": "解析をキャンセル",
   "message_analysis_cancelled": "解析をキャンセルしました",
   "message_cancel_analysis_failed": "解析をキャンセルできませんでした",
-  "insights_retrying": "AI 解析でエラーが発生しました。まもなく再試行します…"
+  "insights_retrying": "AI 解析でエラーが発生しました。まもなく再試行します…",
+  "audit_action_analysis_cancel": "解析をキャンセル",
+  "audit_action_media_image_search": "画像で検索",
+  "audit_action_settings_image_search": "画像検索の設定",
+  "audit_sum_analysis_cancel": "{count} 件の解析をキャンセル",
+  "audit_sum_image_search": "画像で検索：添付ファイル {id}（15 分間の公開リンク）",
+  "audit_sum_image_search_settings": "画像検索の設定を変更"
 }

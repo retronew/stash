@@ -767,5 +767,11 @@
   "message_cancel_analysis": "Cancel analysis",
   "message_analysis_cancelled": "Analysis cancelled",
   "message_cancel_analysis_failed": "Couldn't cancel the analysis",
-  "insights_retrying": "AI analysis hit an error; retrying soon…"
+  "insights_retrying": "AI analysis hit an error; retrying soon…",
+  "audit_action_analysis_cancel": "Cancel analysis",
+  "audit_action_media_image_search": "Search by image",
+  "audit_action_settings_image_search": "Image search settings",
+  "audit_sum_analysis_cancel": "Cancelled analysis of {count} messages",
+  "audit_sum_image_search": "Searched by image: attachment {id} (15-minute public link)",
+  "audit_sum_image_search_settings": "Changed image search settings"
 }
