@@ -8,9 +8,19 @@ import {
 
 // Key/value rows in the settings table.
 
+// Settings are read on every request (allowlist, API token) but rarely change,
+// so each isolate keeps them briefly. Writes here update the cache at once;
+// other isolates see a change within CACHE_TTL_MS.
+const CACHE_TTL_MS = 30_000;
+const cache = new Map<string, { value: string | null; at: number }>();
+
 export async function getSetting(db: D1Database, key: string): Promise<string | null> {
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
   const row = await db.prepare("SELECT value FROM settings WHERE key = ?").bind(key).first<{ value: string }>();
-  return row?.value ?? null;
+  const value = row?.value ?? null;
+  cache.set(key, { value, at: Date.now() });
+  return value;
 }
 
 export async function setSetting(db: D1Database, key: string, value: string) {
@@ -18,6 +28,12 @@ export async function setSetting(db: D1Database, key: string, value: string) {
     .prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value")
     .bind(key, value)
     .run();
+  cache.set(key, { value, at: Date.now() });
+}
+
+export async function deleteSetting(db: D1Database, key: string) {
+  await db.prepare("DELETE FROM settings WHERE key = ?").bind(key).run();
+  cache.set(key, { value: null, at: Date.now() });
 }
 
 /** Settings key of the API token (see routes/settings.ts). */

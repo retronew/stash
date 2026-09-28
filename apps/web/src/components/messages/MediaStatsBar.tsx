@@ -6,7 +6,7 @@ import { m } from "#lib/i18n";
 
 /** One line of download counts; failures link to the task queue. */
 export function MediaStatsBar() {
-  const { data } = useQuery({ ...mediaStatsQuery, refetchInterval: 15_000 });
+  const { data } = useQuery({ ...mediaStatsQuery, refetchInterval: 60_000 });
   if (!data) return null;
   const inFlight = data.pending + data.downloading;
 

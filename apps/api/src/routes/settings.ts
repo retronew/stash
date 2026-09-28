@@ -3,7 +3,7 @@ import { isLocale } from "@stash/shared/i18n";
 import type { Env } from "#types";
 import { ownerEmails, getExtraEmails, setExtraEmails, parseEmails, isValidEmail } from "#auth";
 import { getAiLanguage, getLocale, isAiLanguage, setAiLanguage, setLocale } from "#locale";
-import { API_TOKEN_KEY, getRawAiSettings, getSetting, saveAiSettings, setSetting } from "#settings";
+import { API_TOKEN_KEY, getRawAiSettings, getSetting, saveAiSettings, setSetting, deleteSetting } from "#settings";
 import {
   normalizeBaseUrl,
   upgradeAiSettings,
@@ -80,7 +80,7 @@ settingsRoutes.post("/api-token/reset", async (c) => {
 });
 
 settingsRoutes.delete("/api-token", async (c) => {
-  await c.env.DB.prepare("DELETE FROM settings WHERE key = ?").bind(API_TOKEN_KEY).run();
+  await deleteSetting(c.env.DB, API_TOKEN_KEY);
   return c.json({ ok: true });
 });
 

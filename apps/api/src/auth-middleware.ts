@@ -26,13 +26,20 @@ export async function requireAuth(c: Context<{ Bindings: Env }>, next: Next) {
     }
     return c.json({ error: "unauthorized" }, 401);
   }
-  const session = await getAuth(c.env)
-    .api.getSession({ headers: c.req.raw.headers })
+  const result = await getAuth(c.env)
+    .api.getSession({ headers: c.req.raw.headers, returnHeaders: true })
     .catch(() => null);
+  const session = result?.response;
   // Re-check the allowlist so removing an email revokes existing sessions.
   if (!session || !(await isAllowedEmail(c.env, session.user.email))) {
     return c.json({ error: "unauthorized" }, 401);
   }
   setActor(c, session.user.email);
   await next();
+  // Pass on the refreshed session cookie cache; without it every request
+  // after the first five minutes would look the session up in D1 again.
+  // (A proxied fetch() response has immutable headers; it just misses the refresh.)
+  try {
+    for (const cookie of result.headers.getSetCookie()) c.res.headers.append("Set-Cookie", cookie);
+  } catch {}
 }
