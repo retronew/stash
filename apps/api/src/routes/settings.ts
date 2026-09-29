@@ -5,18 +5,16 @@ import { ownerEmails, getExtraEmails, setExtraEmails, parseEmails, isValidEmail 
 import { getAiLanguage, getLocale, isAiLanguage, setAiLanguage, setLocale } from "#locale";
 import { API_TOKEN_KEY, getRawAiSettings, getSetting, saveAiSettings, setSetting, deleteSetting } from "#settings";
 import {
-  normalizeBaseUrl,
-  upgradeAiSettings,
   resolveEmbeddingEndpoint,
   findProvider,
   CUSTOM_PROVIDER,
   isChatConfigured,
+  isChatEndpointReady,
   isEmbeddingConfigured,
   chatRequestUrls,
   embeddingRequestUrls,
-  type AiSettings,
-  type AiEndpoint,
 } from "@stash/shared";
+import { chatAt, maskChat, maskKey, mergeWithSaved } from "#ai-settings-merge";
 import { createChatModel, createEmbeddingModel, describeError } from "#ai";
 import { testChat } from "#ai-test";
 import { listModels, ModelListError, type ModelFamily } from "#ai-models";
@@ -112,43 +110,14 @@ settingsRoutes.put("/retention/:target", async (c) => {
 });
 
 // AI models (from PickIt). Keys are masked when read; an empty key in the form
-// keeps the saved one while the endpoint still points at the same server.
-
-function maskKey(key: string): string {
-  if (!key) return "";
-  if (key.length <= 8) return "****";
-  return key.slice(0, 4) + "****" + key.slice(-4);
-}
-
-function origin(url: string): string | null {
-  try {
-    return new URL(normalizeBaseUrl(url)).origin;
-  } catch {
-    return null;
-  }
-}
-
-/** An empty key means "keep the saved one", but only for the same provider and server. */
-function keepKey<P extends string>(incoming: AiEndpoint<P>, saved: AiEndpoint<P>): string {
-  if (incoming.apiKey) return incoming.apiKey;
-  const target = origin(incoming.baseUrl);
-  const sameTarget = incoming.provider === saved.provider && target !== null && target === origin(saved.baseUrl);
-  return sameTarget ? saved.apiKey : "";
-}
-
-function mergeWithSaved(body: unknown, saved: AiSettings): AiSettings {
-  const next = upgradeAiSettings({ ...(body as object), version: 2 });
-  next.chat.baseUrl = normalizeBaseUrl(next.chat.baseUrl);
-  next.embedding.baseUrl = normalizeBaseUrl(next.embedding.baseUrl);
-  next.chat.apiKey = keepKey(next.chat, saved.chat);
-  next.embedding.apiKey = keepKey(next.embedding, saved.embedding);
-  return next;
-}
+// keeps the saved one while the endpoint still points at the same server
+// (see #ai-settings-merge).
 
 settingsRoutes.get("/ai", async (c) => {
   const s = await getRawAiSettings(c.env.DB);
   return c.json({
-    chat: { ...s.chat, apiKey: "", apiKeyMasked: maskKey(s.chat.apiKey) },
+    chat: maskChat(s.chat),
+    chatFallbacks: s.chatFallbacks.map(maskChat),
     embedding: { ...s.embedding, apiKey: "", apiKeyMasked: maskKey(s.embedding.apiKey) },
     chatConfigured: isChatConfigured(s),
     embeddingConfigured: isEmbeddingConfigured(s),
@@ -162,10 +131,10 @@ settingsRoutes.post("/ai", async (c) => {
 });
 
 settingsRoutes.post("/ai/models", async (c) => {
-  const body = await c.req.json<{ target: "chat" | "embedding"; settings: unknown }>();
+  const body = await c.req.json<{ target: "chat" | "embedding"; index?: number; settings: unknown }>();
   const next = mergeWithSaved(body.settings, await getRawAiSettings(c.env.DB));
-  const endpoint = body.target === "chat" ? next.chat : next.embedding;
-  if (!endpoint.baseUrl) return c.json({ error: "Enter the base URL first" }, 400);
+  const endpoint = body.target === "chat" ? chatAt(next, body.index) : next.embedding;
+  if (!endpoint?.baseUrl) return c.json({ error: "Enter the base URL first" }, 400);
   if (!endpoint.apiKey && endpoint.provider !== CUSTOM_PROVIDER && !findProvider(endpoint.provider)?.keyOptional) {
     return c.json({ error: "Enter the API key first" }, 400);
   }
@@ -179,13 +148,13 @@ settingsRoutes.post("/ai/models", async (c) => {
 });
 
 settingsRoutes.post("/ai/test", async (c) => {
-  const body = await c.req.json<{ target: "chat" | "embedding"; settings: unknown }>();
+  const body = await c.req.json<{ target: "chat" | "embedding"; index?: number; settings: unknown }>();
   const next = mergeWithSaved(body.settings, await getRawAiSettings(c.env.DB));
 
   if (body.target === "chat") {
-    const e = next.chat;
-    const urls = chatRequestUrls(e.protocol, e.baseUrl, e.model);
-    if (!isChatConfigured(next)) return c.json({ ok: false, urls, error: "The chat model isn't fully set up" });
+    const e = chatAt(next, body.index);
+    const urls = e ? chatRequestUrls(e.protocol, e.baseUrl, e.model) : [];
+    if (!e || !isChatEndpointReady(e)) return c.json({ ok: false, urls, error: "The chat model isn't fully set up" });
     const startedAt = Date.now();
     try {
       return c.json({ ok: true, urls, ...(await testChat(createChatModel(e), e)) });

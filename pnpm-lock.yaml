@@ -32,6 +32,9 @@ importers:
       '@ai-sdk/openai-compatible':
         specifier: ^3.0.57
         version: 3.0.57(zod@4.6.5)
+      '@ai-sdk/provider':
+        specifier: ^4.0.17
+        version: 4.0.18
       '@stash/shared':
         specifier: workspace:*
         version: link:../../packages/shared

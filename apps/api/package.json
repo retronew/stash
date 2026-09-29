@@ -20,6 +20,7 @@
     "@ai-sdk/google": "^4.0.82",
     "@ai-sdk/openai": "^4.0.78",
     "@ai-sdk/openai-compatible": "^3.0.57",
+    "@ai-sdk/provider": "^4.0.17",
     "@stash/shared": "workspace:*",
     "ai": "^7.0.116",
     "better-auth": "^1.7.5",
