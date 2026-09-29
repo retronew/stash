@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Outlet, Link, NavLink, useNavigate } from "react-router";
 import { LogOutIcon } from "lucide-react";
 import { useTheme } from "#hooks/useTheme";
 import { ScrollFade } from "#components/ScrollFade";
 import { Button } from "#components/ui/button";
 import { BackToTop } from "#components/BackToTop";
+import { PageLoading } from "#components/PageLoading";
 import { HeaderMenu } from "#components/HeaderMenu";
 import { LanguageMenu } from "#components/LanguageMenu";
 import { ThemeToggle } from "#components/ThemeToggle";
@@ -95,7 +96,9 @@ export function AppShell() {
         </div>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
-        <Outlet />
+        <Suspense fallback={<PageLoading />}>
+          <Outlet />
+        </Suspense>
       </main>
       <BackToTop />
     </div>

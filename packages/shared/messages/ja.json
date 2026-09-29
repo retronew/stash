@@ -697,6 +697,7 @@
   "stats_messages": "メッセージ",
   "stats_stored": "{count} 件保存済み · {size}",
   "stats_top_chats": "よく使う会話",
+  "stats_category_other": "その他",
   "stats_uncategorized": "未分類",
   "status_downloading": "ダウンロード中",
   "tags_add_button": "{count} 個のタグを追加",

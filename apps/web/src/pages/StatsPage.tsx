@@ -1,7 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { StatTile } from "#components/StatTile";
 import { PageLoading } from "#components/PageLoading";
-import { BarList, ColumnChart, StatCard } from "#components/stats/StatCharts";
+import { StatCard } from "#components/stats/StatCharts";
+import { RankBarChart } from "#components/stats/RankBarChart";
+import { TrendChart } from "#components/stats/TrendChart";
+import { CategoryDonutChart } from "#components/stats/CategoryDonutChart";
+import { fillMonths } from "#lib/fillMonths";
 import { useAccounts } from "#hooks/useAccounts";
 import { statsQuery } from "#lib/queries";
 import { lastDays } from "#lib/stats-data";
@@ -38,24 +42,24 @@ export function StatsPage() {
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <div className="flex flex-col gap-6">
           <StatCard title={m.stats_by_day()} description={m.stats_by_day_hint()}>
-            <ColumnChart rows={lastDays(stats.byDay)} />
+            <TrendChart rows={lastDays(stats.byDay)} />
           </StatCard>
           <StatCard title={m.stats_by_month()}>
-            <ColumnChart rows={stats.byMonth.map((r) => ({ label: r.month, count: r.count }))} />
+            <TrendChart rows={fillMonths(stats.byMonth).map((r) => ({ label: r.month, count: r.count }))} />
           </StatCard>
           <StatCard title={m.stats_by_bot()}>
-            <BarList rows={stats.byBot.map((r) => ({ label: botName(r.accountId, r.name, r.platform), count: r.count }))} />
+            <RankBarChart rows={stats.byBot.map((r) => ({ label: botName(r.accountId, r.name, r.platform), count: r.count }))} />
           </StatCard>
           <StatCard title={m.stats_by_chat_type()}>
-            <BarList rows={stats.byChatType.map((r) => ({ label: chatTypeLabel(r.chatType), count: r.count }))} />
+            <RankBarChart rows={stats.byChatType.map((r) => ({ label: chatTypeLabel(r.chatType), count: r.count }))} />
           </StatCard>
         </div>
         <div className="flex flex-col gap-6">
           <StatCard title={m.stats_by_category()} description={m.stats_by_category_hint()}>
-            <BarList rows={stats.byCategory.map((r) => ({ label: r.category || m.stats_uncategorized(), count: r.count }))} />
+            <CategoryDonutChart rows={stats.byCategory.map((r) => ({ label: r.category || m.stats_uncategorized(), count: r.count }))} />
           </StatCard>
           <StatCard title={m.stats_top_chats()}>
-            <BarList
+            <RankBarChart
               rows={stats.topChats.map((r) => ({ label: `${chatTypeLabel(r.chatType)} · ${r.name || shortId(r.chatId)}`, count: r.count }))}
             />
           </StatCard>
@@ -63,7 +67,7 @@ export function StatsPage() {
             title={m.stats_by_kind()}
             footer={stats.failedFiles ? m.stats_failed_files({ count: stats.failedFiles }) : undefined}
           >
-            <BarList rows={stats.byKind.map((r) => ({ label: `${kindLabel(r.kind)} · ${formatBytes(r.bytes)}`, count: r.count }))} />
+            <RankBarChart rows={stats.byKind.map((r) => ({ label: `${kindLabel(r.kind)} · ${formatBytes(r.bytes)}`, count: r.count }))} />
           </StatCard>
         </div>
       </div>

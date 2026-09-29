@@ -697,6 +697,7 @@
   "stats_messages": "Messages",
   "stats_stored": "{count} saved · {size}",
   "stats_top_chats": "Busiest conversations",
+  "stats_category_other": "Other",
   "stats_uncategorized": "Uncategorized",
   "status_downloading": "Downloading",
   "tags_add_button": "Add {count} tags",

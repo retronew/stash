@@ -697,6 +697,7 @@
   "stats_messages": "消息",
   "stats_stored": "已保存 {count} 个 · {size}",
   "stats_top_chats": "最活跃的会话",
+  "stats_category_other": "其他",
   "stats_uncategorized": "未分类",
   "status_downloading": "下载中",
   "tags_add_button": "添加 {count} 个标签",
