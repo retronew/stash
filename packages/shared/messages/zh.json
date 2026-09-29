@@ -362,6 +362,8 @@
   "cron_task_backup_hint": "UTC 零点后的第一次运行备份当天的消息记录，并删除 30 天前的备份。",
   "cron_task_downloads": "补救下载",
   "cron_task_downloads_hint": "重新排队丢失或中断的下载，重试次数用完的标为失败。",
+  "cron_task_hashes": "补算文件指纹",
+  "cron_task_hashes_hint": "给识别重复功能上线前存下的文件计算 SHA-256，每次 90 个。旧文件只补指纹，不会被当作重复删除。",
   "cron_task_retention": "清理过期记录",
   "cron_task_retention_hint": "按保留时间删除事件记录、失败的下载、回收站和审计日志。",
   "cron_task_thumbs": "补生成缩略图",

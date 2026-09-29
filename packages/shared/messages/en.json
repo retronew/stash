@@ -362,6 +362,8 @@
   "cron_task_backup_hint": "The first run after midnight UTC backs up the day's messages and deletes backups older than 30 days.",
   "cron_task_downloads": "Rescue downloads",
   "cron_task_downloads_hint": "Queues lost or interrupted downloads again; ones out of attempts are marked failed.",
+  "cron_task_hashes": "Fill in file fingerprints",
+  "cron_task_hashes_hint": "Computes the SHA-256 of files stored before duplicate detection, 90 at a time. Older files only get a fingerprint; they aren't trashed as duplicates.",
   "cron_task_retention": "Prune old records",
   "cron_task_retention_hint": "Deletes event log entries, failed downloads, trash and audit log entries past their retention.",
   "cron_task_thumbs": "Fill in thumbnails",

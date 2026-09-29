@@ -1,6 +1,7 @@
 import type { DownloadTarget } from "#media/attachments";
 import { DownloadError, isRetryableStatus } from "#media/retry";
 import { extensionFor, mediaKey } from "#media/keys";
+import { hashing, hashObject } from "#media/hash";
 
 // Streams an attachment from the platform into R2 without holding it in
 // memory, so files of tens (or hundreds) of MB fit in a Worker's 128 MB.
@@ -22,6 +23,8 @@ export interface Stored {
   key: string;
   size: number;
   contentType: string;
+  /** SHA-256 (hex); null when it couldn't be computed. */
+  hash: string | null;
 }
 
 function describe(err: unknown): string {
@@ -117,12 +120,13 @@ async function download(bucket: R2Bucket, target: DownloadTarget, dog: ReturnTyp
   const encoded = (res.headers.get("content-encoding") ?? "identity").toLowerCase() !== "identity";
   const knownLength = Number.isSafeInteger(length) && length > 0 && !encoded;
 
+  const hashed = hashing(watched(res.body, dog.touch));
   let size: number;
   try {
     size =
       knownLength && length <= SINGLE_PUT_MAX
-        ? await putStream(bucket, key, watched(res.body, dog.touch), length, options)
-        : await putMultipart(bucket, key, watched(res.body, dog.touch), options);
+        ? await putStream(bucket, key, hashed.stream, length, options)
+        : await putMultipart(bucket, key, hashed.stream, options);
   } catch (err) {
     const reason = dog.signal.aborted ? dog.signal.reason : err;
     throw err instanceof DownloadError ? err : new DownloadError(`transfer failed: ${describe(reason)}`, true);
@@ -132,7 +136,7 @@ async function download(bucket: R2Bucket, target: DownloadTarget, dog: ReturnTyp
     await bucket.delete(key).catch(() => {});
     throw new DownloadError(`incomplete download: ${size} of ${knownLength ? length : "?"} bytes`, true);
   }
-  return { key, size, contentType };
+  return { key, size, contentType, hash: await hashed.hash.catch(() => null) };
 }
 
 /** Single PUT, streamed. FixedLengthStream errors if the body ends early. */
@@ -206,5 +210,6 @@ async function alreadyStored(bucket: R2Bucket, target: DownloadTarget): Promise<
     key: object.key,
     size: object.size,
     contentType: object.httpMetadata?.contentType || target.content_type || "application/octet-stream",
+    hash: await hashObject(bucket, object.key).catch(() => null),
   };
 }

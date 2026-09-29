@@ -1,11 +1,13 @@
 import type { Env } from "#types";
-import { isAnalyzeJob, isEmbedJob, isThumbJob, type MediaJob } from "#media/jobs";
+import { isAnalyzeJob, isEmbedJob, isHashJob, isThumbJob, type MediaJob } from "#media/jobs";
 import { makeThumbs } from "#media/thumbs";
 import { processEmbedJob } from "#analysis/embed";
 import { processAnalyzeJob } from "#analysis/consumer";
 import { analyzeWhenReady } from "#analysis/queue";
 import { claim, markFailed, markRetrying, markStored, type DownloadTarget } from "#media/attachments";
 import { downloadToR2 } from "#media/download";
+import { hashObject } from "#media/hash";
+import { trashIfDuplicate } from "#media/dedupe";
 import { DownloadError, nextDelaySeconds } from "#media/retry";
 
 // Queue consumer: one job per invocation (max_batch_size 1 in wrangler.jsonc).
@@ -35,6 +37,10 @@ export async function queue(batch: MessageBatch<MediaJob>, env: Env) {
 async function processOne(message: Message<MediaJob>, env: Env) {
   if (message.body && isThumbJob(message.body)) {
     await processThumbJob(message, env, message.body.attachmentId);
+    return;
+  }
+  if (message.body && isHashJob(message.body)) {
+    await processHashJob(message, env, message.body.attachmentId);
     return;
   }
   if (message.body && isEmbedJob(message.body)) {
@@ -69,6 +75,8 @@ async function processOne(message: Message<MediaJob>, env: Env) {
     const stored = await downloadToR2(env.MEDIA, target);
     await markStored(env.DB, id, stored);
     message.ack();
+    // The same file(s) as an older message: trashed, so no thumbnails or analysis.
+    if (await trashIfDuplicate(env, target.message_id)) return;
     // Before analysis, so the model gets the 1280px preview rather than a huge original.
     if (target.kind === "image") await makeThumbs(env, id, stored.key);
     await analyzeWhenReady(env, target.message_id);
@@ -102,6 +110,23 @@ async function processThumbJob(message: Message<MediaJob>, env: Env, id: number)
     .catch(() => null);
   if (row) await makeThumbs(env, id, row.r2_key);
   message.ack();
+}
+
+/** The hash of a file stored before hashing existed (queued by the sweep). Older files aren't deduplicated. */
+async function processHashJob(message: Message<MediaJob>, env: Env, id: number) {
+  try {
+    const row = await env.DB.prepare("SELECT r2_key FROM attachments WHERE id = ? AND status = 'stored' AND content_hash IS NULL")
+      .bind(id)
+      .first<{ r2_key: string | null }>();
+    if (row) {
+      const hash = row.r2_key ? await hashObject(env.MEDIA, row.r2_key) : null;
+      await env.DB.prepare("UPDATE attachments SET content_hash = ? WHERE id = ?").bind(hash ?? "", id).run();
+    }
+    message.ack();
+  } catch (err) {
+    console.error("hashing failed", id, err);
+    message.retry({ delaySeconds: INFRA_RETRY_SECONDS });
+  }
 }
 
 /** Messages the main queue gave up on (the consumer kept crashing): record them as failed. */

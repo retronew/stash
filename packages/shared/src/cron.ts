@@ -2,7 +2,7 @@
 // last ran and how it went, and when they run next. Times are ms since epoch
 // (UTC); the page shows them in the viewer's time zone.
 
-export const CRON_TASKS = ["downloads", "analysis", "thumbs", "retention", "backup"] as const;
+export const CRON_TASKS = ["downloads", "analysis", "thumbs", "hashes", "retention", "backup"] as const;
 export type CronTaskId = (typeof CRON_TASKS)[number];
 
 /** ok: ran; skipped: nothing to do (e.g. today's backup exists); error: threw. */

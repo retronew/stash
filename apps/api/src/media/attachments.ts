@@ -71,17 +71,17 @@ export async function claim(db: D1Database, id: number): Promise<DownloadTarget 
 export async function markStored(
   db: D1Database,
   id: number,
-  stored: { key: string; size: number; contentType: string },
+  stored: { key: string; size: number; contentType: string; hash: string | null },
 ) {
   const now = Date.now();
   await db
     .prepare(
       `UPDATE attachments SET status = 'stored', r2_key = ?, stored_size = ?,
          content_type = CASE WHEN content_type = '' THEN ? ELSE content_type END,
-         last_error = '', stored_at = ?, updated_at = ?
+         content_hash = ?, last_error = '', stored_at = ?, updated_at = ?
        WHERE id = ?`,
     )
-    .bind(stored.key, stored.size, stored.contentType, now, now, id)
+    .bind(stored.key, stored.size, stored.contentType, stored.hash, now, now, id)
     .run();
 }
 

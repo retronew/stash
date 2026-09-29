@@ -8,13 +8,17 @@ export type MediaJob =
   | { attachmentId: number }
   | { kind: "analyze"; messageId: number }
   | { kind: "embed"; ids: number[] }
-  | { kind: "thumb"; attachmentId: number };
+  | { kind: "thumb"; attachmentId: number }
+  | { kind: "hash"; attachmentId: number };
 
 export const isEmbedJob = (job: MediaJob): job is Extract<MediaJob, { kind: "embed" }> =>
   "kind" in job && job.kind === "embed";
 
 export const isThumbJob = (job: MediaJob): job is Extract<MediaJob, { kind: "thumb" }> =>
   "kind" in job && job.kind === "thumb";
+
+export const isHashJob = (job: MediaJob): job is Extract<MediaJob, { kind: "hash" }> =>
+  "kind" in job && job.kind === "hash";
 
 export const isAnalyzeJob = (job: MediaJob): job is Extract<MediaJob, { kind: "analyze" }> =>
   "kind" in job && job.kind === "analyze";

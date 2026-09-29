@@ -4,7 +4,7 @@
 
 import type { CronOverview, CronRun, CronRunStatus, CronTaskId } from "@stash/shared";
 import type { Env } from "#types";
-import { sweepAnalysis, sweepDownloads, sweepThumbs } from "#media/sweep";
+import { sweepAnalysis, sweepDownloads, sweepHashes, sweepThumbs } from "#media/sweep";
 import { pruneAll } from "#retention";
 import { dailyBackup } from "#backups";
 import { safeAudit } from "#audit/index";
@@ -60,6 +60,8 @@ export const TASKS: CronTask[] = [
   { id: "analysis", cron: EVERY_10_MINUTES, run: async (env) => count(await sweepAnalysis(env)) },
   // Thumbnails and AI previews for older images, 20 at a time.
   { id: "thumbs", cron: EVERY_10_MINUTES, run: async (env) => count(await sweepThumbs(env)) },
+  // Hashes for files stored before duplicate detection, 90 at a time.
+  { id: "hashes", cron: EVERY_10_MINUTES, run: async (env) => count(await sweepHashes(env)) },
   // Records past their retention (events, failed downloads, trash, audit log).
   { id: "retention", cron: EVERY_10_MINUTES, run: async (env) => count(await pruneAll(env.DB, env.MEDIA)) },
   // Today's backup, on the first run after midnight UTC.

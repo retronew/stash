@@ -362,6 +362,8 @@
   "cron_task_backup_hint": "UTC 0 時以降の最初の実行でその日のメッセージをバックアップし、30 日より古いバックアップを削除します。",
   "cron_task_downloads": "ダウンロードの救済",
   "cron_task_downloads_hint": "失われた・中断したダウンロードを再キューし、試行回数を使い切ったものは失敗にします。",
+  "cron_task_hashes": "ファイル指紋の補完",
+  "cron_task_hashes_hint": "重複検出の導入前に保存されたファイルの SHA-256 を 90 件ずつ計算します。既存ファイルは指紋を付けるだけで、重複として削除されません。",
   "cron_task_retention": "古い記録の削除",
   "cron_task_retention_hint": "保存期間を過ぎたイベント記録・失敗したダウンロード・ごみ箱・監査ログを削除します。",
   "cron_task_thumbs": "サムネイルの補完",

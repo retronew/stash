@@ -25,6 +25,17 @@ export async function sweepThumbs(env: Env): Promise<number> {
   return ids.length;
 }
 
+/** Stored files without a hash yet (from before hashing existed), a batch at a time. */
+export async function sweepHashes(env: Env): Promise<number> {
+  const { results } = await env.DB.prepare(
+    `SELECT id FROM attachments WHERE status = 'stored' AND content_hash IS NULL ORDER BY id LIMIT ?`,
+  )
+    .bind(BATCH)
+    .all<{ id: number }>();
+  if (results.length) await enqueueJobs(env, results.map((r) => ({ kind: "hash" as const, attachmentId: r.id })));
+  return results.length;
+}
+
 /** Interrupted downloads back to pending (or failed after the last attempt), lost ones queued again. */
 export async function sweepDownloads(env: Env): Promise<number> {
   const now = Date.now();

@@ -5,6 +5,7 @@ export const CRON_TASK_LABELS: Record<CronTaskId, { name: () => string; hint: ()
   downloads: { name: m.cron_task_downloads, hint: m.cron_task_downloads_hint },
   analysis: { name: m.cron_task_analysis, hint: m.cron_task_analysis_hint },
   thumbs: { name: m.cron_task_thumbs, hint: m.cron_task_thumbs_hint },
+  hashes: { name: m.cron_task_hashes, hint: m.cron_task_hashes_hint },
   retention: { name: m.cron_task_retention, hint: m.cron_task_retention_hint },
   backup: { name: m.cron_task_backup, hint: m.cron_task_backup_hint },
 };
