@@ -16,7 +16,8 @@ export function useRetention(target: RetentionTarget) {
       old ? { ...old, targets: { ...old.targets, [target]: { days: res.days, stats: res.stats } } } : old,
     );
     // Pruning changes what the lists and summaries show.
-    await queryClient.invalidateQueries({ queryKey: target === "events" ? ["events"] : ["media"] });
+    const affected = target === "events" ? ["events"] : target === "ai_usage" ? ["ai-usage"] : ["media"];
+    await queryClient.invalidateQueries({ queryKey: affected });
     return { deleted: res.deleted };
   }
 

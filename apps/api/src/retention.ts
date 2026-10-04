@@ -7,8 +7,9 @@ import { purgeMessages, trashedIds } from "#messages";
 // "tasks" only covers failed downloads: a saved attachment is part of its
 // message (and its file in R2), so it goes when the message is purged.
 // "trash" purges messages that sat in the recycle bin too long, files included.
+// "ai_usage" is the token usage of AI calls shown on the Stats page.
 
-export const RETENTION_TARGETS = ["events", "tasks", "trash", "audit"] as const;
+export const RETENTION_TARGETS = ["events", "tasks", "trash", "audit", "ai_usage"] as const;
 export type RetentionTarget = (typeof RETENTION_TARGETS)[number];
 
 export const MAX_RETENTION_DAYS = 3650;
@@ -49,6 +50,14 @@ const SPECS: Record<RetentionTarget, TargetSpec> = {
     where: "1 = 1",
     timeColumn: "created_at",
     textBytes: "length(CAST(actor AS BLOB)) + length(CAST(action AS BLOB)) + length(CAST(target AS BLOB)) + length(CAST(summary AS BLOB)) + length(CAST(ip AS BLOB)) + length(CAST(user_agent AS BLOB)) + length(CAST(detail AS BLOB))",
+  },
+  ai_usage: {
+    settingKey: "retention_ai_usage_days",
+    defaultDays: 180,
+    table: "ai_usage",
+    where: "1 = 1",
+    timeColumn: "created_at",
+    textBytes: "length(kind) + length(feature) + length(provider) + length(model) + COALESCE(length(error), 0)",
   },
   trash: {
     settingKey: "retention_trash_days",

@@ -157,7 +157,7 @@ settingsRoutes.post("/ai/test", async (c) => {
     if (!e || !isChatEndpointReady(e)) return c.json({ ok: false, urls, error: "The chat model isn't fully set up" });
     const startedAt = Date.now();
     try {
-      return c.json({ ok: true, urls, ...(await testChat(createChatModel(e), e)) });
+      return c.json({ ok: true, urls, ...(await testChat(createChatModel(e, { db: c.env.DB, feature: "test" }), e)) });
     } catch (err) {
       return c.json({ ok: false, urls, durationMs: Date.now() - startedAt, error: describeError(err) });
     }
@@ -169,7 +169,7 @@ settingsRoutes.post("/ai/test", async (c) => {
   const startedAt = Date.now();
   try {
     const { embed } = await import("ai");
-    const { embedding } = await embed({ model: createEmbeddingModel(e), value: "test", maxRetries: 0 });
+    const { embedding } = await embed({ model: createEmbeddingModel(e, { db: c.env.DB, feature: "test" }), value: "test", maxRetries: 0 });
     return c.json({ ok: true, urls, dimensions: embedding.length, durationMs: Date.now() - startedAt });
   } catch (err) {
     return c.json({ ok: false, urls, durationMs: Date.now() - startedAt, error: describeError(err) });

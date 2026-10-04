@@ -59,7 +59,7 @@ interface Row {
 export async function processEmbedJob(message: Message<unknown>, env: Env, ids: number[]) {
   try {
     const settings = await getAiSettings(env.DB);
-    const provider = settings ? createProvider(settings) : null;
+    const provider = settings ? createProvider(settings, { db: env.DB, feature: "embed" }) : null;
     if (!provider?.embedding || ids.length === 0) {
       message.ack();
       return;

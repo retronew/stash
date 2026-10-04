@@ -4,7 +4,7 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import type { CronOverview, ImageSearchSettings } from "@stash/shared";
 import type { BackupInfo } from "#hooks/useBackups";
-import type { StatsSummary } from "@stash/shared";
+import type { AiUsageReport, StatsSummary } from "@stash/shared";
 import { tzOffset } from "#lib/stats-data";
 import type { AuditPage } from "#lib/audit";
 import type {
@@ -209,7 +209,7 @@ export const apiTokenQuery = queryOptions({
   queryFn: () => api<{ masked: string | null }>("/api/settings/api-token"),
 });
 
-export type RetentionTarget = "events" | "tasks" | "trash" | "audit";
+export type RetentionTarget = "events" | "tasks" | "trash" | "audit" | "ai_usage";
 
 export interface RetentionStats {
   count: number;
@@ -376,4 +376,11 @@ export const imageSearchLinkQuery = (id: number) =>
     staleTime: 10 * 60_000,
     gcTime: 10 * 60_000,
     retry: false,
+  });
+
+/** AI token usage over the last `days` local days of `timeZone` (IANA). */
+export const aiUsageQuery = (days: number, timeZone: string) =>
+  queryOptions({
+    queryKey: ["ai-usage", days, timeZone],
+    queryFn: () => api<AiUsageReport>(`/api/ai-usage?days=${days}&tz=${encodeURIComponent(timeZone)}`),
   });

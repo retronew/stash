@@ -55,7 +55,7 @@ async function keywordIds(env: Env, q: string, filter: MessageQuery): Promise<nu
 /** Semantic matches, or null when there's no embedding model to ask. */
 async function semanticScores(env: Env, q: string, filter: MessageQuery): Promise<Map<number, number> | null> {
   const settings = await getAiSettings(env.DB);
-  const provider = settings ? createProvider(settings) : null;
+  const provider = settings ? createProvider(settings, { db: env.DB, feature: "search" }) : null;
   if (!provider?.embedding) return null;
   const vector = await embedText(provider, q);
   if (!vector) return null;

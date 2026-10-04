@@ -54,7 +54,7 @@ export type RunOutcome = "done" | "skipped";
 
 export async function analyzeMessage(env: Env, id: number): Promise<RunOutcome> {
   const aiSettings = await getAiSettings(env.DB);
-  const provider = aiSettings ? createProvider(aiSettings) : null;
+  const provider = aiSettings ? createProvider(aiSettings, { db: env.DB, feature: "analyze" }) : null;
   if (!provider) throw new NotConfiguredError("AI isn't configured");
 
   const row = await env.DB.prepare(

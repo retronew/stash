@@ -3,6 +3,7 @@
 export * from "./cron";
 export * from "./image-search";
 export * from "./ai/index";
+export * from "./ai-usage";
 
 /** Chat platforms Stash can receive from. */
 export const PLATFORMS = ["qq"] as const;
