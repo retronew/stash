@@ -86,7 +86,8 @@ export function MessageInsights({ message, onPick }: { message: Message; onPick?
             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
               {fields.map((k) => (
                 <div key={k} className="contents">
-                  <dt className="text-muted-foreground">{FIELD_LABELS[k]()}</dt>
+                  {/* As tall as one value chip (20px copy button + padding), so the label lines up with its first row. */}
+                  <dt className="flex h-6 items-center text-muted-foreground">{FIELD_LABELS[k]()}</dt>
                   <dd className="flex min-w-0 flex-wrap gap-1">
                     {message.fields[k].map((v) => (
                       <span key={v} className="inline-flex max-w-full items-center gap-0.5 rounded bg-background px-1.5 py-0.5">
