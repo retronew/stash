@@ -23,7 +23,7 @@ import { BulkActionBar } from "#components/messages/BulkActionBar";
 import type { LabelPick } from "#components/messages/MessageInsights";
 import { TagsEditDialog } from "#components/messages/TagsEditDialog";
 import { analysisCategoriesFrom } from "#lib/categories";
-import { categoriesQuery, chatsQuery, tagsQuery } from "#lib/queries";
+import { categoriesQuery, chatsQuery, sendersQuery, tagsQuery } from "#lib/queries";
 import { exportFromFilters } from "#lib/export-plan";
 import { errorMessage } from "#lib/api";
 import { m } from "#lib/i18n";
@@ -33,6 +33,7 @@ export function MessagesPage() {
   const [text, setText] = useState("");
   const { accounts } = useAccounts();
   const { data: chats } = useQuery(chatsQuery);
+  const { data: senders } = useQuery(sendersQuery);
   const { data: inUse } = useQuery(categoriesQuery);
   const { data: tags } = useQuery(tagsQuery);
   const { settings } = useAnalysis();
@@ -64,6 +65,7 @@ export function MessagesPage() {
         onClear={clear}
         accounts={accounts ?? []}
         chats={chats ?? []}
+        senders={senders ?? []}
         categories={categories}
         tags={tags ?? []}
         onExport={() => ExportDialog.call({ initial: exportFromFilters(filters) })}

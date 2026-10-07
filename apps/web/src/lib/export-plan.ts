@@ -1,5 +1,5 @@
 import { PLATFORMS, type Attachment, type AttachmentKind, type ChatType, type Message, type Platform } from "@stash/shared";
-import { periodStart, type MessageFilters } from "#lib/queries";
+import type { MessageFilters } from "#lib/queries";
 
 // Pure parts of an export: which files, where they go in the ZIP, how they
 // split into volumes, and the report. useExport does the fetching and writing.
@@ -31,25 +31,9 @@ export interface ExportFile {
 /** Volumes stay under this in browsers that can't stream to disk (a larger single file gets its own). */
 export const VOLUME_LIMIT = 500 * 1024 * 1024;
 
-/** A local date as YYYY-MM-DD. */
-export function localDate(ms: number): string {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 /** Export options matching the message feed's filters. */
 export function exportFromFilters(f: MessageFilters): Partial<ExportOptions> {
-  const since = periodStart(f.period);
-  return { platforms: f.platforms, accounts: f.accounts, chatTypes: f.chatTypes, chatIds: f.chatIds, from: since ? localDate(since) : "" };
-}
-
-/** since / until in ms for the API, from inclusive local dates. */
-export function dateRange(from: string, to: string): { since?: number; until?: number } {
-  const day = (d: string) => new Date(`${d}T00:00:00`).getTime();
-  return {
-    since: from ? day(from) : undefined,
-    until: to ? day(to) + 86_400_000 : undefined,
-  };
+  return { platforms: f.platforms, accounts: f.accounts, chatTypes: f.chatTypes, chatIds: f.chatIds, from: f.from, to: f.to };
 }
 
 /** Characters Windows, macOS and Linux all accept in a path segment. */

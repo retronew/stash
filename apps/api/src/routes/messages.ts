@@ -9,6 +9,7 @@ import {
   setCategory,
   getMessage,
   listChats,
+  listSenders,
   listMessages,
   purgeMessages,
   restoreMessages,
@@ -22,7 +23,7 @@ export const messageRoutes = new Hono<{ Bindings: Env }>();
 
 /**
  * ?before=<id>&limit= plus the shared message filters (see message-params.ts):
- * q, platform, account, chat, since, until, media=1 / media=0, status; trash=1 lists the recycle bin.
+ * q, platform, account, chat, chatid, category, tag, kind, sender, ai, since, until, media=1 / media=0, status; trash=1 lists the recycle bin.
  */
 messageRoutes.get("/", async (c) => {
   const q = c.req.query();
@@ -64,6 +65,9 @@ messageRoutes.patch("/:id{[0-9]+}", async (c) => {
 
 /** The conversations seen so far, for the chat filter. */
 messageRoutes.get("/chats", async (c) => c.json(await listChats(c.env.DB)));
+
+/** The people seen so far, for the sender filter. */
+messageRoutes.get("/senders", async (c) => c.json(await listSenders(c.env.DB)));
 
 const BULK_ACTIONS = ["trash", "restore", "purge", "category", "add_tags", "remove_tags"] as const;
 

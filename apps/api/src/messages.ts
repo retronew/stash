@@ -2,6 +2,7 @@ import {
   emptyFields,
   FIELD_KEYS,
   type AnalysisStatus,
+  type AttachmentKind,
   type AttachmentStatus,
   type ChatSummary,
   type ChatType,
@@ -10,6 +11,7 @@ import {
   type MessageFields,
   type MessagePage,
   type Platform,
+  type SenderSummary,
 } from "@stash/shared";
 import { toAttachment, type AttachmentRow } from "#media/attachments";
 import { inClause } from "#params";
@@ -64,6 +66,12 @@ export interface MessageQuery {
   /** sent_at range, ms: since inclusive, until exclusive. */
   since?: number;
   until?: number;
+  /** Only messages with an attachment of one of these kinds. */
+  kinds?: AttachmentKind[];
+  /** Sent by any of these people (platform sender ids). */
+  senderIds?: string[];
+  /** In any of these AI analysis states ("" = not analyzed). */
+  aiStatuses?: AnalysisStatus[];
   /** Only messages with an attachment in this state. */
   status?: AttachmentStatus;
   /** The recycle bin instead of the live messages. */
@@ -84,6 +92,11 @@ export function messageWhere(q: MessageQuery, params: unknown[]): string[] {
   if (q.chatTypes?.length) where.push(inClause("m.chat_type", q.chatTypes, params));
   if (q.chatIds?.length) where.push(inClause("m.chat_id", q.chatIds, params));
   if (q.categories?.length) where.push(inClause("m.category", q.categories, params));
+  if (q.senderIds?.length) where.push(inClause("m.sender_id", q.senderIds, params));
+  if (q.aiStatuses?.length) where.push(inClause("m.ai_status", q.aiStatuses, params));
+  if (q.kinds?.length) {
+    where.push(`EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id AND ${inClause("a.kind", q.kinds, params)})`);
+  }
   if (q.tags?.length) where.push(`EXISTS (SELECT 1 FROM json_each(m.tags) t WHERE ${inClause("t.value", q.tags, params)})`);
   if (q.query) {
     // "!" escapes LIKE's wildcards, so a search for "50%" means the text "50%".
@@ -370,6 +383,19 @@ export async function listChats(db: D1Database): Promise<ChatSummary[]> {
        ORDER BY lastAt DESC LIMIT 500`,
     )
     .all<ChatSummary>();
+  return results;
+}
+
+/** The people seen so far, most active first, for the sender filter. */
+export async function listSenders(db: D1Database): Promise<SenderSummary[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT sender_id AS senderId, platform, MAX(sender_name) AS name, COUNT(*) AS messages
+       FROM messages WHERE sender_id != '' AND deleted_at IS NULL
+       GROUP BY sender_id, platform
+       ORDER BY messages DESC LIMIT 500`,
+    )
+    .all<SenderSummary>();
   return results;
 }
 

@@ -26,9 +26,11 @@ import type {
   MediaTaskPage,
   MessagePage,
   Platform,
+  SenderSummary,
   WebhookEventDetail,
 } from "@stash/shared";
 import { api } from "#lib/api";
+import { dateRange } from "#lib/date-range";
 import type { Locale } from "#lib/i18n";
 
 type Param = string | number | boolean | readonly string[] | undefined | null;
@@ -64,27 +66,32 @@ export interface MessageFilters {
   tags: string[];
   /** all, only messages with files, only those without, or only those with a failed download. */
   media: "all" | "media" | "text" | "failed";
-  period: Period;
+  /** Inclusive local dates, yyyy-mm-dd ("" = open-ended). */
+  from: string;
+  to: string;
+  kinds: AttachmentKind[];
+  /** Sender ids. */
+  senders: string[];
+  /** AI analysis states; "none" = not analyzed. */
+  ai: string[];
 }
 
-/** A time window back from now; resolved when the request is made. */
-export type Period = "all" | "today" | "7d" | "30d" | "year";
-
-/** Start of a period in ms (local midnight), or undefined for "all". */
-export function periodStart(period: Period, now = new Date()): number | undefined {
-  const day = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  switch (period) {
-    case "today":
-      return day;
-    case "7d":
-      return day - 6 * 86_400_000;
-    case "30d":
-      return day - 29 * 86_400_000;
-    case "year":
-      return new Date(now.getFullYear(), 0, 1).getTime();
-    default:
-      return undefined;
-  }
+/** The API's filter parameters for the feed and search. */
+function messageFilterParams(filters: MessageFilters): Record<string, Param> {
+  return {
+    platform: filters.platforms,
+    ...dateRange(filters.from, filters.to),
+    account: filters.accounts,
+    chat: filters.chatTypes,
+    chatid: filters.chatIds,
+    category: filters.categories,
+    tag: filters.tags,
+    kind: filters.kinds,
+    sender: filters.senders,
+    ai: filters.ai,
+    media: filters.media === "media" ? true : filters.media === "text" ? false : undefined,
+    status: filters.media === "failed" ? "failed" : undefined,
+  };
 }
 
 export const messagesQuery = (filters: MessageFilters) =>
@@ -93,15 +100,7 @@ export const messagesQuery = (filters: MessageFilters) =>
     queryFn: ({ pageParam }) =>
       api<MessagePage>(
         listUrl("/api/messages", {
-          platform: filters.platforms,
-          since: periodStart(filters.period),
-          account: filters.accounts,
-          chat: filters.chatTypes,
-          chatid: filters.chatIds,
-          category: filters.categories,
-          tag: filters.tags,
-          media: filters.media === "media" ? true : filters.media === "text" ? false : undefined,
-          status: filters.media === "failed" ? "failed" : undefined,
+          ...messageFilterParams(filters),
           before: pageParam,
           limit: 30,
         }),
@@ -204,6 +203,11 @@ export const chatsQuery = queryOptions({
   queryFn: () => api<ChatSummary[]>("/api/messages/chats"),
 });
 
+export const sendersQuery = queryOptions({
+  queryKey: ["messages", "senders"],
+  queryFn: () => api<SenderSummary[]>("/api/messages/senders"),
+});
+
 export const apiTokenQuery = queryOptions({
   queryKey: ["settings", "api-token"],
   queryFn: () => api<{ masked: string | null }>("/api/settings/api-token"),
@@ -286,15 +290,7 @@ export const searchQuery = (q: string, filters: MessageFilters) =>
       api<{ hits: SearchHit[]; semantic: boolean }>(
         listUrl("/api/messages/search", {
           q,
-          platform: filters.platforms,
-          since: periodStart(filters.period),
-          account: filters.accounts,
-          chat: filters.chatTypes,
-          chatid: filters.chatIds,
-          category: filters.categories,
-          tag: filters.tags,
-          media: filters.media === "media" ? true : filters.media === "text" ? false : undefined,
-          status: filters.media === "failed" ? "failed" : undefined,
+          ...messageFilterParams(filters),
         }),
       ),
     staleTime: 30_000,

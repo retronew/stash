@@ -1,4 +1,4 @@
-import { ATTACHMENT_STATUSES, CHAT_TYPES, PLATFORMS } from "@stash/shared";
+import { ANALYSIS_STATUSES, ATTACHMENT_KINDS, ATTACHMENT_STATUSES, CHAT_TYPES, PLATFORMS } from "@stash/shared";
 import type { MessageQuery } from "#messages";
 import { listParam } from "#params";
 
@@ -9,9 +9,12 @@ function timeParam(value: string | undefined): number | undefined {
   return Number.isFinite(ms) && ms > 0 ? ms : undefined;
 }
 
+/** AI states in the query string: "none" stands for "" (not analyzed). */
+const AI_PARAMS = ANALYSIS_STATUSES.map((s) => s || "none");
+
 /**
  * The message filters shared by /api/messages and /api/export:
- * q, platform, account, chat (types), chatid, category, tag (lists comma separated), since / until, media=1 (with files) / media=0 (text only), status, trash=1.
+ * q, platform, account, chat (types), chatid, category, tag, kind, sender, ai (lists comma separated; ai=none is not analyzed), since / until, media=1 (with files) / media=0 (text only), status, trash=1.
  */
 export function messageQueryParams(q: Record<string, string | undefined>): MessageQuery {
   return {
@@ -22,6 +25,9 @@ export function messageQueryParams(q: Record<string, string | undefined>): Messa
     chatIds: listParam(q.chatid),
     categories: listParam(q.category),
     tags: listParam(q.tag),
+    kinds: listParam(q.kind, ATTACHMENT_KINDS),
+    senderIds: listParam(q.sender),
+    aiStatuses: listParam(q.ai, AI_PARAMS).map((s) => (s === "none" ? "" : s) as (typeof ANALYSIS_STATUSES)[number]),
     since: timeParam(q.since),
     until: timeParam(q.until),
     withMedia: q.media === "1" ? true : q.media === "0" ? false : undefined,

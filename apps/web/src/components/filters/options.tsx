@@ -1,4 +1,4 @@
-import type { Account, ChatSummary } from "@stash/shared";
+import type { Account, ChatSummary, SenderSummary } from "@stash/shared";
 import { BotAvatar } from "#components/BotAvatar";
 import { accountLabel, chatTypeLabel } from "#lib/labels";
 import type { FilterOption } from "#components/filters/MultiSelectFilter";
@@ -28,6 +28,16 @@ export function chatOptions(chats: ChatSummary[], accounts: Account[], onlyAccou
       count: c.messages,
       icon: <BotAvatar account={byId.get(c.accountId)} platform={c.platform} className="size-4" />,
     }));
+}
+
+/** People as filter options: their name (or a short id) and message count. */
+export function senderOptions(senders: SenderSummary[]): FilterOption[] {
+  return senders.map((s) => ({
+    value: s.senderId,
+    label: s.name || shortId(s.senderId),
+    count: s.messages,
+    icon: <BotAvatar platform={s.platform} className="size-4" />,
+  }));
 }
 
 /** Platform ids are long opaque strings; the start is enough to tell them apart. */

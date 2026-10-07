@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emptyFields, type Attachment, type Message } from "@stash/shared";
-import { dateRange, entryPath, extensionOf, planFiles, safeName, splitVolumes, zipName } from "./export-plan";
+import { dateRange } from "./date-range";
+import { entryPath, extensionOf, planFiles, safeName, splitVolumes, zipName } from "./export-plan";
 
 const att = (over: Partial<Attachment> = {}): Attachment => ({
   id: 7,

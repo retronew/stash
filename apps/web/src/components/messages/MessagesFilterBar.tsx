@@ -1,17 +1,27 @@
 import { useState } from "react";
 import { CheckSquareIcon, DownloadIcon, ListFilterIcon } from "lucide-react";
 import { Badge } from "#components/ui/badge";
-import { CHAT_TYPES, type Account, type ChatSummary, type ChatType, type Platform } from "@stash/shared";
+import {
+  ATTACHMENT_KINDS,
+  CHAT_TYPES,
+  type Account,
+  type AttachmentKind,
+  type ChatSummary,
+  type ChatType,
+  type Platform,
+  type SenderSummary,
+} from "@stash/shared";
 import { Button } from "#components/ui/button";
 import { MultiSelectFilter } from "#components/filters/MultiSelectFilter";
 import { SingleSelectFilter } from "#components/filters/SingleSelectFilter";
 import { ActiveFilters, chipsFor, type ActiveFilter } from "#components/filters/ActiveFilters";
-import { accountOptions, chatOptions, enumOptions, optionLabel } from "#components/filters/options";
-import type { MessageFilters, Period } from "#lib/queries";
-import { chatTypeLabel } from "#lib/labels";
+import { accountOptions, chatOptions, enumOptions, optionLabel, senderOptions } from "#components/filters/options";
+import { DateRangePicker } from "#components/DateRangePicker";
+import type { MessageFilters } from "#lib/queries";
+import { AI_FILTER_STATES, aiStateLabel, chatTypeLabel, kindLabel, type AiFilterState } from "#lib/labels";
 import { platformList } from "#lib/platforms";
 import type { CategoryOption } from "#lib/categories";
-import { m } from "#lib/i18n";
+import { intlLocale, m } from "#lib/i18n";
 
 export const EMPTY_MESSAGE_FILTERS: MessageFilters = {
   platforms: [],
@@ -20,9 +30,16 @@ export const EMPTY_MESSAGE_FILTERS: MessageFilters = {
   chatIds: [],
   categories: [],
   tags: [],
+  kinds: [],
+  senders: [],
+  ai: [],
   media: "all",
-  period: "all",
+  from: "",
+  to: "",
 };
+
+const dateLabel = new Intl.DateTimeFormat(intlLocale(), { month: "short", day: "numeric" });
+const shortDate = (d: string) => (d ? dateLabel.format(new Date(`${d}T00:00:00`)) : "…");
 
 interface Props {
   filters: MessageFilters;
@@ -30,6 +47,7 @@ interface Props {
   onClear: () => void;
   accounts: Account[];
   chats: ChatSummary[];
+  senders: SenderSummary[];
   categories: CategoryOption[];
   tags: { tag: string; count: number }[];
   /** Packs the files these filters match. */
@@ -38,21 +56,14 @@ interface Props {
   onToggleSelectMode: () => void;
 }
 
-/** Time and files (one of); platform, bot and chat type (any of); the export button; the active filters as chips. */
-export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats, categories, tags, onExport, selectMode, onToggleSelectMode }: Props) {
+/** Dates and files (one of); kinds, senders, AI state, platform, bot and chat type (any of); the export button; the active filters as chips. */
+export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats, senders, categories, tags, onExport, selectMode, onToggleSelectMode }: Props) {
   const [expanded, setExpanded] = useState(false);
   const media: { value: MessageFilters["media"]; label: string }[] = [
     { value: "all", label: m.filter_media_all() },
     { value: "media", label: m.view_media() },
     { value: "text", label: m.view_text_only() },
     { value: "failed", label: m.view_failed() },
-  ];
-  const periods: { value: Period; label: string }[] = [
-    { value: "all", label: m.period_all() },
-    { value: "today", label: m.period_today() },
-    { value: "7d", label: m.period_7d() },
-    { value: "30d", label: m.period_30d() },
-    { value: "year", label: m.period_year() },
   ];
   const platforms = platformList().map((p) => ({ value: p.id, label: p.label() }));
   const bots = accountOptions(accounts);
@@ -66,14 +77,24 @@ export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats,
   const setPlatforms = (v: string[]) => onChange({ platforms: v as Platform[] });
   const setBots = (accounts: string[]) => onChange({ accounts });
   const setChats = (v: string[]) => onChange({ chatTypes: v as ChatType[] });
+  const kinds = enumOptions(ATTACHMENT_KINDS, kindLabel);
+  const setKinds = (v: string[]) => onChange({ kinds: v as AttachmentKind[] });
+  const people = senderOptions(senders);
+  const setSenders = (v: string[]) => onChange({ senders: v });
+  const aiStates = enumOptions(AI_FILTER_STATES, aiStateLabel);
+  const setAi = (v: string[]) => onChange({ ai: v });
+  const clearDates = () => onChange({ from: "", to: "" });
 
   const chips: ActiveFilter[] = [
-    ...(filters.period === "all"
-      ? []
-      : [{ key: "period", label: optionLabel(periods, filters.period), onRemove: () => onChange({ period: "all" }) }]),
+    ...(filters.from || filters.to
+      ? [{ key: "dates", label: `${shortDate(filters.from)} – ${shortDate(filters.to || filters.from)}`, onRemove: clearDates }]
+      : []),
     ...(filters.media === "all"
       ? []
       : [{ key: "media", label: optionLabel(media, filters.media), onRemove: () => onChange({ media: "all" }) }]),
+    ...chipsFor("kind", filters.kinds, (v) => kindLabel(v as AttachmentKind), setKinds),
+    ...chipsFor("sender", filters.senders, (v) => optionLabel(people, v), setSenders),
+    ...chipsFor("ai", filters.ai, (v) => aiStateLabel(v as AiFilterState), setAi),
     ...chipsFor("category", filters.categories, (v) => v, setCategories),
     ...chipsFor("tag", filters.tags, (v) => `#${v}`, setTags),
     ...chipsFor("platform", filters.platforms, (v) => optionLabel(platforms, v), setPlatforms),
@@ -84,8 +105,11 @@ export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats,
 
   const controls = (
     <>
-      <SingleSelectFilter label={m.filter_period()} options={periods} value={filters.period} onChange={(period) => onChange({ period })} />
+      <DateRangePicker from={filters.from} to={filters.to} onChange={onChange} className="max-sm:col-span-2 max-sm:[&>button:first-child]:flex-1" />
       <SingleSelectFilter label={m.filter_media()} options={media} value={filters.media} onChange={(v) => onChange({ media: v })} />
+      <MultiSelectFilter label={m.filter_kind()} options={kinds} selected={filters.kinds} onChange={setKinds} />
+      <MultiSelectFilter label={m.filter_sender()} options={people} selected={filters.senders} onChange={setSenders} className="sm:w-40" />
+      <MultiSelectFilter label={m.filter_ai()} options={aiStates} selected={filters.ai} onChange={setAi} />
       <MultiSelectFilter label={m.filter_category()} options={categoryOptions} selected={filters.categories} onChange={setCategories} />
       <MultiSelectFilter label={m.filter_tag()} options={tagOptions} selected={filters.tags} onChange={setTags} />
       <MultiSelectFilter label={m.filter_platform()} options={platforms} selected={filters.platforms} onChange={setPlatforms} />

@@ -245,6 +245,14 @@ export interface ChatSummary {
   lastAt: number;
 }
 
+export interface SenderSummary {
+  senderId: string;
+  platform: Platform;
+  /** The latest name seen; may be empty. */
+  name: string;
+  messages: number;
+}
+
 /** What an export with the current filters would contain. */
 export interface ExportSummary {
   /** Messages matching the filters (all go into messages.json). */

@@ -59,3 +59,18 @@ export const kindLabel = (k: AttachmentKind) => KIND_LABELS[k]?.() ?? k;
 
 /** A bot's display name: its name, else its credential id, else a short id. */
 export const accountLabel = (a: Pick<Account, "name" | "appId" | "id">) => a.name || a.appId || a.id.slice(0, 8);
+
+/** AI analysis states as the filter knows them ("none" = not analyzed). */
+export const AI_FILTER_STATES = ["none", "pending", "running", "done", "failed", "skipped"] as const;
+export type AiFilterState = (typeof AI_FILTER_STATES)[number];
+
+const AI_STATE_LABELS: Record<AiFilterState, () => string> = {
+  none: () => m.ai_status_none(),
+  pending: () => m.ai_status_pending(),
+  running: () => m.ai_status_running(),
+  done: () => m.ai_status_done(),
+  failed: () => m.ai_status_failed(),
+  skipped: () => m.ai_status_skipped(),
+};
+
+export const aiStateLabel = (s: AiFilterState) => AI_STATE_LABELS[s]();
