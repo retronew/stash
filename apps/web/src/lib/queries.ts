@@ -62,8 +62,8 @@ export interface MessageFilters {
   chatIds: string[];
   categories: string[];
   tags: string[];
-  /** all, only messages with files, or only those with a failed download. */
-  media: "all" | "media" | "failed";
+  /** all, only messages with files, only those without, or only those with a failed download. */
+  media: "all" | "media" | "text" | "failed";
   period: Period;
 }
 
@@ -100,7 +100,7 @@ export const messagesQuery = (filters: MessageFilters) =>
           chatid: filters.chatIds,
           category: filters.categories,
           tag: filters.tags,
-          media: filters.media === "media" ? true : undefined,
+          media: filters.media === "media" ? true : filters.media === "text" ? false : undefined,
           status: filters.media === "failed" ? "failed" : undefined,
           before: pageParam,
           limit: 30,
@@ -293,7 +293,7 @@ export const searchQuery = (q: string, filters: MessageFilters) =>
           chatid: filters.chatIds,
           category: filters.categories,
           tag: filters.tags,
-          media: filters.media === "media" ? true : undefined,
+          media: filters.media === "media" ? true : filters.media === "text" ? false : undefined,
           status: filters.media === "failed" ? "failed" : undefined,
         }),
       ),

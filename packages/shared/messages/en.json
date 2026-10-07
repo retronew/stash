@@ -755,6 +755,7 @@
   "undo": "Undo",
   "view_failed": "Failed",
   "view_media": "With files",
+  "view_text_only": "Text only",
   "image_search": "Search by image",
   "image_search_all": "All engines",
   "image_search_all_hint": "Opens a tab for each engine at once; your browser may ask you to allow pop-ups.",

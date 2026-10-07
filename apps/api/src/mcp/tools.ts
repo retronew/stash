@@ -138,7 +138,7 @@ export const TOOLS: Tool[] = [
         categories: strings(args.categories),
         since: date(args.since, "since"),
         until: date(args.until, "until"),
-        withMedia: args.with_files === true,
+        withMedia: args.with_files === true ? true : undefined,
       };
       const text = str(args.text);
       if (text) {

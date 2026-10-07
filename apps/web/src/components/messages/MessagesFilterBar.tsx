@@ -44,6 +44,7 @@ export function MessagesFilterBar({ filters, onChange, onClear, accounts, chats,
   const media: { value: MessageFilters["media"]; label: string }[] = [
     { value: "all", label: m.filter_media_all() },
     { value: "media", label: m.view_media() },
+    { value: "text", label: m.view_text_only() },
     { value: "failed", label: m.view_failed() },
   ];
   const periods: { value: Period; label: string }[] = [

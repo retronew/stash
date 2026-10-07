@@ -22,7 +22,7 @@ export const messageRoutes = new Hono<{ Bindings: Env }>();
 
 /**
  * ?before=<id>&limit= plus the shared message filters (see message-params.ts):
- * q, platform, account, chat, since, until, media=1, status; trash=1 lists the recycle bin.
+ * q, platform, account, chat, since, until, media=1 / media=0, status; trash=1 lists the recycle bin.
  */
 messageRoutes.get("/", async (c) => {
   const q = c.req.query();

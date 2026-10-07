@@ -755,6 +755,7 @@
   "undo": "撤销",
   "view_failed": "下载失败",
   "view_media": "有附件",
+  "view_text_only": "纯文字",
   "image_search": "以图搜图",
   "image_search_all": "全部引擎",
   "image_search_all_hint": "一次为每个引擎打开一个标签页；浏览器可能会要求允许弹出窗口。",

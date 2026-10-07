@@ -755,6 +755,7 @@
   "undo": "取り消す",
   "view_failed": "失敗",
   "view_media": "添付あり",
+  "view_text_only": "テキストのみ",
   "image_search": "画像で検索",
   "image_search_all": "すべてのエンジン",
   "image_search_all_hint": "エンジンごとにタブを一度に開きます。ブラウザーがポップアップの許可を求めることがあります。",

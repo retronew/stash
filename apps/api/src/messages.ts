@@ -57,7 +57,7 @@ export interface MessageQuery {
   categories?: string[];
   /** Any of these tags. */
   tags?: string[];
-  /** Only messages with at least one attachment. */
+  /** true: only messages with at least one attachment; false: only those without any. */
   withMedia?: boolean;
   /** Text or sender name contains this (case-insensitive for ASCII). */
   query?: string;
@@ -102,8 +102,8 @@ export function messageWhere(q: MessageQuery, params: unknown[]): string[] {
   if (q.status) {
     where.push("EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id AND a.status = ?)");
     params.push(q.status);
-  } else if (q.withMedia) {
-    where.push("EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id)");
+  } else if (q.withMedia !== undefined) {
+    where.push(`${q.withMedia ? "" : "NOT "}EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id)`);
   }
   return where;
 }
